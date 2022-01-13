@@ -24,6 +24,7 @@ function iterateDirectories() {
     then
       infoecho "Processing $d."
       fetchRemotes
+      removeDeleted
       removeMerged
       pruneLocal
       checkStashes
@@ -38,6 +39,12 @@ function iterateDirectories() {
 function fetchRemotes() {
   echo "Removing deleted remote branches..."
   git fetch --prune $(git remote)
+}
+
+# Clear up deleted branches
+function removeDeleted() {
+  echo "Removing local branches with a deleted remote..."
+  git for-each-ref --format '%(refname:short) %(upstream:track)' | awk '$2 == "[gone]" {print $1}' | xargs -r git branch -D
 }
 
 # Clear up merged branches
