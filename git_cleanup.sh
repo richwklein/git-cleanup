@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 # Clear any echo text coloring
 nocolor='\033[0m'
