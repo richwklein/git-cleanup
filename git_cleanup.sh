@@ -16,7 +16,7 @@ error_echo() {
 }
 
 # Parse command-line arguments
-while getopts "b:d:r" opt; do
+while getopts "d:u" opt; do
   case $opt in
     d) DIRECTORY="$OPTARG" ;;
     u) DELETE_UNTRACKED=true ;;
@@ -112,7 +112,7 @@ prune_local_objects() {
 # Remove untracked branches
 remove_untracked() {
     if [ "$DELETE_UNTRACKED" = true ]; then
-      echo "Removing untracked files and branches..."
+      echo "Removing untracked branches..."
       local branches
       branches=$(git branch --no-merged)
       if [[ -n "$branches" ]]; then
