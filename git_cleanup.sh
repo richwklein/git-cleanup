@@ -75,16 +75,22 @@ fetch_remotes() {
     git fetch --prune $(git_remotes)
 }
 
+# Function to delete branches
+delete_branches() {
+    local branches="$1"
+    if [[ -n "$branches" ]]; then
+        echo "$branches" | while read -r branch; do
+            git branch -D "$branch"
+        done
+    fi
+}
+
 # Remove deleted branches
 remove_deleted_branches() {
     echo "Removing local branches with deleted remote tracking..."
     local branches
     branches=$(git branch --format "%(refname:short) %(upstream:track)" | awk '$2 == "[gone]" {print $1}')
-    if [[ -n "$branches" ]]; then
-        echo "$branches" | while read -r branch; do
-            git branch -D
-        done
-    fi
+    delete_branches "$branches"
 }
 
 # Remove merged branches
@@ -96,11 +102,7 @@ remove_merged_branches() {
     current_branch=$(git symbolic-ref --short HEAD)
     local branches
     branches=$(git branch --merged "$main_branch" | sed 's/^ *//g' | grep -v -e "$main_branch" -e "$current_branch")
-    if [[ -n "$branches" ]]; then
-        echo "$branches" | while read -r branch; do
-            git branch -d "$branch"
-        done
-    fi
+    delete_branches "$branches"
 }
 
 # Prune orphaned objects
@@ -112,14 +114,10 @@ prune_local_objects() {
 # Remove untracked branches
 remove_untracked() {
     if [ "$DELETE_UNTRACKED" = true ]; then
-      echo "Removing untracked branches..."
-      local branches
-      branches=$(git branch --no-merged)
-      if [[ -n "$branches" ]]; then
-          echo "$branches" | while read -r branch; do
-              git branch -D "$branch"
-          done
-      fi
+        echo "Removing untracked branches..."
+        local branches
+        branches=$(git branch --no-merged)
+        delete_branches "$branches"
     fi
 }
 
