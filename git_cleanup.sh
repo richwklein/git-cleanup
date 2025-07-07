@@ -16,10 +16,11 @@ error_echo() {
 }
 
 # Parse command-line arguments
-while getopts "d:u" opt; do
+while getopts "d:u:m" opt; do
   case $opt in
     d) DIRECTORY="$OPTARG" ;;
     u) DELETE_UNTRACKED=true ;;
+    m) CHECKOUT_MAIN=true ;;
     *)
       echo "Usage: $0 [-d directory] [-u]"
       exit 1
@@ -72,8 +73,18 @@ checkout_main_branch() {
     if [ "$CHECKOUT_MAIN" = true ]; then
         local main_branch
         main_branch=$(detect_main_branch)
-        echo "Checking out main branch: $main_branch"
-        git checkout "$main_branch" 2>/dev/null || error_echo "Failed to checkout main branch: $main_branch"
+
+        local current_branch
+        current_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+        if [ "$current_branch" = "$main_branch" ]; then
+            info_echo "Already on main branch: $main_branch"
+            return
+        fi
+
+        info_echo "Checking out main branch: $main_branch"
+        if ! git checkout "$main_branch"; then
+            error_echo "Failed to checkout main branch: $main_branch"
+        fi
     fi
 }   
 
