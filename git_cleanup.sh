@@ -73,17 +73,17 @@ checkout_main_branch() {
     if [ "$CHECKOUT_MAIN" = true ]; then
         local main_branch
         main_branch=$(detect_main_branch)
+        echo "Checking out the main branch: $main_branch..."
 
         local current_branch
         current_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
         if [ "$current_branch" = "$main_branch" ]; then
-            info_echo "Already on main branch: $main_branch"
+            info_echo "Already on the main branch"
             return
         fi
 
-        info_echo "Checking out main branch: $main_branch"
         if ! git checkout "$main_branch"; then
-            error_echo "Failed to checkout main branch: $main_branch"
+            error_echo "Failed to checkout the main branch"
         fi
     fi
 }   
