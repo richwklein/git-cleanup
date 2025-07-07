@@ -6,6 +6,7 @@ Script for cleanup of local git working directories.
 
 The `git_cleanup.sh` script is designed to help you clean up your local Git repositories. It performs the following tasks:
 
+- Optionally check out the main branch.
 - Fetches updates from remote repositories and prunes any remote-tracking references that no longer exist on the remote.
 - Removes local branches that have been deleted on the remote.
 - Removes local branches that have been merged into the main branch.
