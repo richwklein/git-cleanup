@@ -7,5 +7,5 @@ updates:
       patterns:
         - "*" 
   schedule:
-    interval: daily
+    interval: weekly
   open-pull-requests-limit: 20
