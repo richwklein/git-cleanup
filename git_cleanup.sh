@@ -15,6 +15,10 @@ error_echo() {
     printf "%b%s%b\n" "$RED" "$1" "$NO_COLOR" >&2
 }
 
+usage() {
+    echo "Usage: $0 [-d directory] [-u] [-m]"
+}
+
 # Parse command-line arguments
 while getopts "d:u:m" opt; do
   case $opt in
@@ -22,7 +26,7 @@ while getopts "d:u:m" opt; do
     u) DELETE_UNTRACKED=true ;;
     m) CHECKOUT_MAIN=true ;;
     *)
-      echo "Usage: $0 [-d directory] [-u]"
+      usage
       exit 1
       ;;
   esac
@@ -30,29 +34,41 @@ done
 
 # Default values
 DIRECTORY=${DIRECTORY:-.}
-DELETE_UNTRACKED=${DELETE_UNTRACKED:false}
-CHECKOUT_MAIN=${CHECKOUT_MAIN:false}
+DELETE_UNTRACKED=${DELETE_UNTRACKED:-false}
+CHECKOUT_MAIN=${CHECKOUT_MAIN:-false}
 
 # Determine the main branch dynamically
 detect_main_branch() {
-    git symbolic-ref refs/remotes/origin/HEAD 2>/dev/null | sed 's@^refs/remotes/origin/@@' || echo "main"
+    local main_branch
+    main_branch=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null)
+    main_branch=${main_branch#origin/}
+
+    if [ -n "$main_branch" ]; then
+        echo "$main_branch"
+    elif git show-ref --verify --quiet refs/heads/main; then
+        echo "main"
+    elif git show-ref --verify --quiet refs/heads/master; then
+        echo "master"
+    else
+        echo "main"
+    fi
 }
 
 # Function to iterate through directories and clean repositories
 iterate_directories() {
     info_echo "Checking projects in $DIRECTORY..."
-    cd "$DIRECTORY" || exit 1
 
-    if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        info_echo "Processing $DIRECTORY."
+    if git -C "$DIRECTORY" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+        cd "$DIRECTORY" || exit 1
+        info_echo "Processing $(git rev-parse --show-toplevel)."
         clean_repository
     else
-        find "$DIRECTORY" -type d -name ".git" | while read -r gitdir; do
+        find "$DIRECTORY" \( -type d -o -type f \) -name ".git" -print | while read -r gitdir; do
             repo=$(dirname "$gitdir")
             cd "$repo" || continue
             info_echo "Processing $repo."
             clean_repository
-            cd - || exit
+            cd - >/dev/null || exit
         done
     fi
 }
@@ -61,6 +77,7 @@ iterate_directories() {
 clean_repository() {
     checkout_main_branch
     fetch_remotes
+    prune_worktrees
     remove_deleted_branches
     remove_merged_branches
     remove_untracked
@@ -81,6 +98,11 @@ checkout_main_branch() {
             return
         fi
 
+        if is_branch_checked_out_elsewhere "$main_branch"; then
+            error_echo "Cannot checkout $main_branch because it is checked out in another worktree."
+            return
+        fi
+
         if ! git checkout "$main_branch"; then
             error_echo "Failed to checkout the main branch."
         fi
@@ -97,11 +119,45 @@ fetch_remotes() {
     git fetch --prune $(git_remotes)
 }
 
+# Prune stale worktree metadata
+prune_worktrees() {
+    if git worktree list >/dev/null 2>&1; then
+        echo "Pruning stale worktree metadata..."
+        git worktree prune
+    fi
+}
+
+checked_out_worktree_branches() {
+    git worktree list --porcelain 2>/dev/null | sed -n 's/^branch refs\/heads\///p'
+}
+
+is_branch_checked_out() {
+    local branch="$1"
+    checked_out_worktree_branches | grep -Fxq "$branch"
+}
+
+is_branch_checked_out_elsewhere() {
+    local branch="$1"
+    local current_branch
+    current_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
+
+    if [ "$branch" = "$current_branch" ]; then
+        return 1
+    fi
+
+    is_branch_checked_out "$branch"
+}
+
 # Function to delete branches
 delete_branches() {
     local branches="$1"
     if [[ -n "$branches" ]]; then
         echo "$branches" | while read -r branch; do
+            if is_branch_checked_out "$branch"; then
+                error_echo "Skipping $branch because it is checked out in a worktree."
+                continue
+            fi
+
             git branch -D "$branch"
         done
     fi
@@ -121,9 +177,9 @@ remove_merged_branches() {
     local main_branch
     main_branch=$(detect_main_branch)
     local current_branch
-    current_branch=$(git symbolic-ref --short HEAD)
+    current_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
     local branches
-    branches=$(git branch --merged "$main_branch" | sed 's/^ *//g' | grep -v -e "$main_branch" -e "$current_branch")
+    branches=$(git branch --format "%(refname:short)" --merged "$main_branch" | grep -Fvx -e "$main_branch" -e "$current_branch")
     delete_branches "$branches"
 }
 
@@ -138,7 +194,7 @@ remove_untracked() {
     if [ "$DELETE_UNTRACKED" = true ]; then
         echo "Removing untracked branches..."
         local branches
-        branches=$(git branch --no-merged)
+        branches=$(git branch --format "%(refname:short)" --no-merged)
         delete_branches "$branches"
     fi
 }
