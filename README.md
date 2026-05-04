@@ -82,9 +82,9 @@ cleanup
 
 This will execute the [git_cleanup.sh](./git_cleanup.sh) script on the directory specified by the `$PROJECTS` environment variable.
 
-## Releases
+## Release Versioning
 
-When a pull request is merged, the release workflow creates the next GitHub release tag. Add one of these labels to the pull request to control the version bump:
+When a pull request is opened or updated, the release version workflow determines the next GitHub release tag. When the pull request merges into the default branch, the workflow creates that GitHub release. Add one of these labels to the pull request to control the version bump:
 
 * `semver:major`: Bumps `v1.2.3` to `v2.0.0`.
 * `semver:minor`: Bumps `v1.2.3` to `v1.3.0`.

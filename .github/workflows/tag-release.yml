@@ -1,16 +1,21 @@
-name: Tag Release on PR Merge
+name: Determine Release Version
 
 on:
   pull_request:
     types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+      - labeled
+      - unlabeled
       - closed
 
 permissions:
   contents: write
 
 jobs:
-  tag_release:
-    if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == github.event.repository.default_branch
+  determine_version:
     runs-on: ubuntu-latest
 
     steps:
@@ -67,7 +72,20 @@ jobs:
           echo "version=$new_version" >> "$GITHUB_OUTPUT"
           echo "Next release: $new_version"
 
+      - name: Summarize release version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          BUMP_TYPE: ${{ steps.bump.outputs.type }}
+        run: |
+          {
+            echo "## Release version"
+            echo
+            echo "Version bump: \`$BUMP_TYPE\`"
+            echo "Next version: \`$VERSION\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
       - name: Create GitHub release
+        if: github.event.pull_request.merged == true && github.event.pull_request.base.ref == github.event.repository.default_branch
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.version.outputs.version }}
