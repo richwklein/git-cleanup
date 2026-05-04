@@ -78,6 +78,7 @@ clean_repository() {
     checkout_main_branch
     fetch_remotes
     prune_worktrees
+    remove_deleted_worktrees
     remove_deleted_branches
     remove_merged_branches
     remove_untracked
@@ -148,6 +149,51 @@ is_branch_checked_out_elsewhere() {
     is_branch_checked_out "$branch"
 }
 
+gone_tracking_branches() {
+    git branch --format "%(refname:short) %(upstream:track)" | awk '$2 == "[gone]" {print $1}'
+}
+
+worktree_branches() {
+    git worktree list --porcelain 2>/dev/null | awk '
+        /^worktree / { path = substr($0, 10) }
+        /^branch refs\/heads\// {
+            branch = substr($0, 19)
+            print path "\t" branch
+        }
+    '
+}
+
+remove_deleted_worktrees() {
+    echo "Removing worktrees with deleted remote tracking..."
+    local branches
+    branches=$(gone_tracking_branches)
+
+    if [[ -z "$branches" ]]; then
+        return
+    fi
+
+    local current_worktree
+    current_worktree=$(git rev-parse --show-toplevel)
+
+    worktree_branches | while IFS=$'\t' read -r worktree branch; do
+        if ! echo "$branches" | grep -Fxq "$branch"; then
+            continue
+        fi
+
+        if [ "$worktree" = "$current_worktree" ]; then
+            error_echo "Skipping $branch because it is checked out in the current worktree."
+            continue
+        fi
+
+        echo "Removing worktree $worktree for deleted branch $branch..."
+        if git worktree remove "$worktree"; then
+            git branch -D "$branch"
+        else
+            error_echo "Failed to remove worktree $worktree for branch $branch."
+        fi
+    done
+}
+
 # Function to delete branches
 delete_branches() {
     local branches="$1"
@@ -167,7 +213,7 @@ delete_branches() {
 remove_deleted_branches() {
     echo "Removing local branches with deleted remote tracking..."
     local branches
-    branches=$(git branch --format "%(refname:short) %(upstream:track)" | awk '$2 == "[gone]" {print $1}')
+    branches=$(gone_tracking_branches)
     delete_branches "$branches"
 }
 
