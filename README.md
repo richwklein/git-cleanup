@@ -82,6 +82,16 @@ cleanup
 
 This will execute the [git_cleanup.sh](./git_cleanup.sh) script on the directory specified by the `$PROJECTS` environment variable.
 
+## Release Versioning
+
+When a pull request is opened or updated, the release version workflow determines the next GitHub release tag. When the pull request merges into the default branch, the workflow creates that GitHub release. Add one of these labels to the pull request to control the version bump:
+
+* `semver:major`: Bumps `v1.2.3` to `v2.0.0`.
+* `semver:minor`: Bumps `v1.2.3` to `v1.3.0`.
+* `semver:patch`: Bumps `v1.2.3` to `v1.2.4`.
+
+If no semver label is present, the workflow defaults to a patch release.
+
 ## Disclaimer
 
 This script has been cleaned up and improved using Large Language Models (LLMs) to ensure better readability, maintainability, and functionality. Please review the code and test it in your environment before using it in production.
