@@ -10,6 +10,8 @@ The `git_cleanup.sh` script is designed to help you clean up your local Git repo
 - Fetches updates from remote repositories and prunes any remote-tracking references that no longer exist on the remote.
 - Removes local branches that have been deleted on the remote.
 - Removes local branches that have been merged into the main branch.
+- Skips branches that are currently checked out in any linked Git worktree.
+- Prunes stale Git worktree metadata.
 - Prunes orphaned objects from the local repository.
 - Checks for old stashes and notifies if any are found.
 - Optionally removes any untracked branches. [-u]
@@ -24,11 +26,14 @@ Usage: ./git_cleanup.sh [-d directory] [-u] [-m]
 
 * -d directory: Specify the directory to clean up. Defaults to the current directory (.).
 * -u: Removes untracked branches.
+* -m: Checks out the main branch before cleanup when possible.
 
 ### Behavior
 
-If the specified directory contains a .git file, the script will clean up that repository.
-If the specified directory does not contain a .git file, the script will recurse into child directories to find and clean up Git repositories.
+If the specified directory is inside a Git working tree, including a linked worktree, the script will clean up that repository.
+If the specified directory is not inside a Git working tree, the script will recurse into child directories to find `.git` directories and `.git` files, so both regular repositories and linked worktrees are included.
+
+When deleting branches, the script skips branches that are checked out by any worktree because Git does not allow those branches to be deleted. When `-m` is used from a worktree, the script also skips checking out the main branch if that branch is already checked out by another worktree.
 
 ### Examples
 
