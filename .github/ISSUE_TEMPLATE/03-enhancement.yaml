@@ -1,0 +1,82 @@
+name: Feature request
+description: Propose a new capability or meaningful enhancement.
+title: '[Feature]: '
+labels: ['enhancement']
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for a new feature or a meaningful enhancement.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / opportunity
+      description: What problem are you trying to solve or what opportunity are you addressing?
+      placeholder: Describe the need.
+    validations:
+      required: true
+
+  - type: textarea
+    id: goal
+    attributes:
+      label: Goal
+      description: What outcome do you want?
+      placeholder: Describe the desired result.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What do you think should be built or changed?
+      placeholder: Describe the proposed approach.
+    validations:
+      required: true
+
+  - type: textarea
+    id: in-scope
+    attributes:
+      label: In scope
+      description: What is included in this request?
+      placeholder: |
+        - ...
+        - ...
+    validations:
+      required: false
+
+  - type: textarea
+    id: out-of-scope
+    attributes:
+      label: Out of scope
+      description: What is explicitly not part of this request?
+      placeholder: |
+        - ...
+        - ...
+    validations:
+      required: false
+
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: How will you know this is done?
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: false
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Add related issues, docs, mockups, examples, or inspiration.
+      placeholder: |
+        - Related issue:
+        - Docs:
+        - Example:
+    validations:
+      required: false

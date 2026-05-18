@@ -1,0 +1,48 @@
+name: Idea / note
+description: Capture a rough idea or note so it is not forgotten.
+title: '[Idea]: '
+labels: ['idea']
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this when you want to capture something quickly and come back later to refine it.
+
+  - type: textarea
+    id: idea
+    attributes:
+      label: Idea
+      description: What is the thing you do not want to forget?
+      placeholder: A quick note about the idea.
+    validations:
+      required: true
+
+  - type: textarea
+    id: why
+    attributes:
+      label: Why it might matter
+      description: Why is this worth keeping around?
+      placeholder: Brief value, annoyance, opportunity, or motivation.
+    validations:
+      required: false
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Notes / links
+      description: Add any references, screenshots, links, or related issues.
+      placeholder: |
+        - Related issue:
+        - Link:
+        - Screenshot:
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Follow-up
+      options:
+        - label: This issue will likely need refinement later.
+          required: false
