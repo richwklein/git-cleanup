@@ -117,6 +117,7 @@ git_remotes() {
 
 fetch_remotes() {
     echo "Fetching remote changes and pruning removed branches..."
+    # shellcheck disable=SC2046 # intentional word-splitting on remote names
     git fetch --prune $(git_remotes)
 }
 

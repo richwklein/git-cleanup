@@ -1,27 +1,43 @@
-## Proposed changes
+## Summary
 
-Describe the big picture of your changes here to communicate to the maintainers why we should accept this pull request. If it fixes a bug or resolves a feature request, be sure to link to that issue.
+Describe the change at a high level and why it exists.
 
-## Types of changes
+## Linked issue
 
-What types of changes does your code introduce?
-_Put an `x` in the boxes that apply_
+Closes #
 
-- [ ] Bugfix (non-breaking change which fixes an issue)
-- [ ] New feature (non-breaking change which adds functionality)
-- [ ] Breaking change (fix or feature that would cause existing functionality to not work as expected)
-- [ ] Documentation Update (if none of the other choices apply)
+## Type of change
 
-## Checklist
+_Put an `x` in the boxes that apply._
 
-_Put an `x` in the boxes that apply. You can also fill these out after creating the PR. If you're unsure about any of them, don't hesitate to ask. We're here to help! This is simply a reminder of what we are going to look for before merging your code._
+- [ ] Bug fix
+- [ ] Feature
+- [ ] Maintenance / cleanup
+- [ ] Documentation / content
+- [ ] Breaking change
 
-- [ ] Lint and unit tests pass locally with my changes
-- [ ] I have added tests that prove my fix is effective or that my feature works
-- [ ] I have added the necessary documentation (if appropriate)
-- [ ] Any dependent changes have been merged and published in downstream modules
-- [ ] Link to issue to close it
+## Details
 
-## Further comments
+Call out the important implementation details, tradeoffs, or areas reviewers should focus on.
 
-If this is a relatively large or complex change, kick off the discussion by explaining why you chose the solution you did and what alternatives you considered, etc...
+## Release / deploy impact
+
+_Put an `x` in the boxes that apply._
+
+- [ ] Preview deploy is useful for reviewing this change
+- [ ] Safe to label `no-deploy`
+- [ ] This PR intentionally updates the version
+
+## Validation
+
+_Put an `x` in the boxes that apply._
+
+- [ ] Lint passes locally
+- [ ] Unit tests pass locally
+- [ ] Added or updated tests where appropriate
+- [ ] Manually verified changes
+- [ ] Documentation updated where appropriate
+
+## Reviewer notes
+
+Anything else that would help with review, including alternatives considered or follow-up work.

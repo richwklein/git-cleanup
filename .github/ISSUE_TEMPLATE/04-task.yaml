@@ -1,0 +1,69 @@
+name: Maintenance / cleanup task
+description: Track upkeep, refactoring, cleanup, documentation, test, or process work.
+title: '[Task]: '
+labels: ['task']
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for maintenance, cleanup, technical debt, test improvements, documentation work, or smaller implementation tasks.
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What needs to be improved, cleaned up, updated, or maintained?
+      placeholder: Describe the task.
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Why this matters
+      description: What pain, risk, inconsistency, or gap does this address?
+      placeholder: Describe the value of doing this work.
+    validations:
+      required: false
+
+  - type: textarea
+    id: approach
+    attributes:
+      label: Proposed approach
+      description: What do you think should be done?
+      placeholder: Outline the likely implementation or cleanup approach.
+    validations:
+      required: false
+
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope
+      description: What parts of the repo, process, or content are affected?
+      placeholder: e.g. tests, docs, image pipeline, CI
+    validations:
+      required: false
+
+  - type: textarea
+    id: done
+    attributes:
+      label: Definition of done
+      description: How will you know this task is complete?
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: false
+
+  - type: textarea
+    id: references
+    attributes:
+      label: References
+      description: Add related issues, docs, logs, or links.
+      placeholder: |
+        - Related issue:
+        - Doc:
+        - Link:
+    validations:
+      required: false

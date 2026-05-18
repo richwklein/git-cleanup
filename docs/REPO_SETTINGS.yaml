@@ -1,0 +1,59 @@
+# Canonical repo-level GitHub settings for repos generated from this template.
+#
+# Repo-level settings (Actions permissions, security toggles, merge button options)
+# cannot be expressed as files inside the target repo — they live on GitHub. This
+# manifest is the source of truth. The audit skill (.claude/skills/repo-template-audit/)
+# reads this file, diffs each target repo via `gh api`, and offers patches.
+#
+# Per-repo deviations go in `.github/repo-settings-override.yaml` in the target repo.
+# The audit skill treats overridden values as intentional drift.
+
+actions:
+  # Workflows need write to allow release-please to push tags + open release PRs,
+  # and to allow CodeQL to upload SARIF results. Per-workflow `permissions:` blocks
+  # still scope individual jobs to least-privilege.
+  default_workflow_permissions: write
+  can_approve_pull_request_reviews: true
+
+  # Pin actions by SHA is opt-in; allow @* version pins for now.
+  sha_pinning_required: false
+
+  # Allow GitHub-owned + Marketplace-verified actions, plus explicitly listed third parties.
+  allowed_actions: selected
+  github_owned_allowed: true
+  verified_allowed: true
+  patterns_allowed:
+    - 'googleapis/release-please-action@*'
+    - 'github/codeql-action/*@*'
+    - 'davelosert/vitest-coverage-report-action@*'
+    - 'marocchino/sticky-pull-request-comment@*'
+
+security:
+  dependabot_alerts: enabled
+  dependabot_security_updates: enabled
+  secret_scanning: enabled
+  secret_scanning_push_protection: enabled
+  secret_scanning_non_provider_patterns: disabled
+  secret_scanning_validity_checks: disabled
+  private_vulnerability_reporting: enabled
+  # Using the custom CodeQL workflow (.github/workflows/code-codeql.yaml), not GitHub's
+  # default setup. Repos still on default setup must disable it before adding the workflow
+  # or both will run and conflict.
+  code_scanning_default_setup: disabled
+
+general:
+  # Squash-only merges. Linear history is also enforced by the branch ruleset.
+  allow_merge_commit: false
+  allow_squash_merge: true
+  allow_rebase_merge: false
+
+  delete_branch_on_merge: true
+  allow_auto_merge: false
+  allow_update_branch: false
+
+  # Squash commits inherit PR title + body so the merge commit reads cleanly.
+  squash_merge_commit_title: PR_TITLE
+  squash_merge_commit_message: PR_BODY
+
+  # Web-edit commits must include sign-off; pairs with the ruleset's required_signatures.
+  web_commit_signoff_required: true
