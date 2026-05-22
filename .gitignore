@@ -1,0 +1,36 @@
+# build output
+dist/
+build/
+out/
+.cache/
+
+# dependencies
+node_modules/
+
+# logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# coverage
+coverage/
+
+# env files
+.env
+.env.*
+!.env.example
+
+# local-only tool configs (Claude Code, editor overlays, etc.)
+settings.local.*
+
+# worktrees
+.worktrees/
+
+# editor / OS
+.DS_Store
+Icon?
+Thumbs.db
+.idea/
+*.swp
