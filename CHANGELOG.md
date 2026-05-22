@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.1.0](https://github.com/richwklein/git-cleanup/compare/git-cleanup-v2.0.1...git-cleanup-v2.1.0) (2026-05-22)
+
+
+### Features
+
+* **release:** use GitHub App token so release PRs trigger checks ([#22](https://github.com/richwklein/git-cleanup/issues/22)) ([e2cadbe](https://github.com/richwklein/git-cleanup/commit/e2cadbecd4714297dfbab3cbe1af331cad480889))
+
 ## [2.0.1](https://github.com/richwklein/git-cleanup/compare/v2.0.0...v2.0.1) (2026-05-08)
 
 ### Miscellaneous Changes
