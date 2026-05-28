@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.2.0](https://github.com/richwklein/git-cleanup/compare/v2.1.0...v2.2.0) (2026-05-28)
+
+
+### Features
+
+* add bare git repository support ([#30](https://github.com/richwklein/git-cleanup/issues/30)) ([57f2e1f](https://github.com/richwklein/git-cleanup/commit/57f2e1fdba3958bcef4b419aab709382b8c0bf42))
+
+
+### Bug Fixes
+
+* **release:** explicitly disable component in tag name ([#28](https://github.com/richwklein/git-cleanup/issues/28)) ([0994671](https://github.com/richwklein/git-cleanup/commit/099467137b0be91e4e117f12491487f420b1e544))
+
 ## [2.1.0](https://github.com/richwklein/git-cleanup/compare/v2.0.1...v2.1.0) (2026-05-22)
 
 
