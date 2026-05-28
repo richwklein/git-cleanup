@@ -1,6 +1,6 @@
 # Changelog
 
-## [2.1.0](https://github.com/richwklein/git-cleanup/compare/git-cleanup-v2.0.1...git-cleanup-v2.1.0) (2026-05-22)
+## [2.1.0](https://github.com/richwklein/git-cleanup/compare/v2.0.1...v2.1.0) (2026-05-22)
 
 
 ### Features
