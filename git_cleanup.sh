@@ -58,22 +58,47 @@ detect_main_branch() {
 iterate_directories() {
     info_echo "Checking projects in $DIRECTORY..."
 
+    local is_bare
+    is_bare=$(git -C "$DIRECTORY" rev-parse --is-bare-repository 2>/dev/null)
+
+    if [ "$is_bare" = "true" ]; then
+        cd "$DIRECTORY" || exit 1
+        info_echo "Processing bare repo $(pwd)."
+        clean_bare_repository
+        return
+    fi
+
     if git -C "$DIRECTORY" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
         cd "$DIRECTORY" || exit 1
         info_echo "Processing $(git rev-parse --show-toplevel)."
         clean_repository
-    else
-        find "$DIRECTORY" \( -type d -o -type f \) -name ".git" -print | while read -r gitdir; do
-            repo=$(dirname "$gitdir")
-            cd "$repo" || continue
-            info_echo "Processing $repo."
-            clean_repository
-            cd - >/dev/null || exit
-        done
+        return
     fi
+
+    # Process regular repos via their .git directory
+    find "$DIRECTORY" -type d -name ".git" | while read -r gitdir; do
+        local repo
+        repo=$(dirname "$gitdir")
+        cd "$repo" || continue
+        info_echo "Processing $repo."
+        clean_repository
+        cd - >/dev/null || exit
+    done
+
+    # Process bare repos — check each direct subdirectory
+    find "$DIRECTORY" -mindepth 1 -maxdepth 1 -type d | while read -r subdir; do
+        local subdir_is_bare
+        subdir_is_bare=$(git -C "$subdir" rev-parse --is-bare-repository 2>/dev/null)
+        if [ "$subdir_is_bare" = "true" ]; then
+            cd "$subdir" || continue
+            info_echo "Processing bare repo $subdir."
+            clean_bare_repository
+            cd - >/dev/null || exit
+        fi
+    done
 }
 
-# Function to clean a repository
+# Function to clean a regular repository
 clean_repository() {
     checkout_main_branch
     fetch_remotes
@@ -82,6 +107,18 @@ clean_repository() {
     remove_deleted_branches
     remove_merged_branches
     remove_untracked
+    prune_local_objects
+    check_stashes
+}
+
+# Function to clean a bare repository
+clean_bare_repository() {
+    fetch_remotes
+    fast_forward_main
+    prune_worktrees
+    remove_deleted_worktrees
+    remove_deleted_branches
+    remove_merged_branches
     prune_local_objects
     check_stashes
 }
@@ -119,6 +156,28 @@ fetch_remotes() {
     echo "Fetching remote changes and pruning removed branches..."
     # shellcheck disable=SC2046 # intentional word-splitting on remote names
     git fetch --prune $(git_remotes)
+}
+
+# Fast-forward main branch without checking it out (safe in bare repos and worktrees)
+fast_forward_main() {
+    local main_branch
+    main_branch=$(detect_main_branch)
+    echo "Fast-forwarding $main_branch..."
+
+    # If main is checked out in a worktree, pull from there — git refuses
+    # to update a branch via fetch refspec while it is checked out elsewhere.
+    local main_worktree
+    main_worktree=$(git worktree list --porcelain | awk \
+        -v ref="refs/heads/$main_branch" \
+        '/^worktree / { path = substr($0, 10) } $0 == "branch " ref { print path; exit }')
+
+    if [ -n "$main_worktree" ]; then
+        git -C "$main_worktree" pull --ff-only origin "$main_branch" 2>/dev/null \
+            || error_echo "Could not fast-forward $main_branch (diverged or up to date)."
+    else
+        git fetch origin "$main_branch:$main_branch" --ff-only 2>/dev/null \
+            || error_echo "Could not fast-forward $main_branch (diverged or up to date)."
+    fi
 }
 
 # Prune stale worktree metadata
@@ -174,7 +233,7 @@ remove_deleted_worktrees() {
     fi
 
     local current_worktree
-    current_worktree=$(git rev-parse --show-toplevel)
+    current_worktree=$(git rev-parse --show-toplevel 2>/dev/null || git rev-parse --absolute-git-dir 2>/dev/null)
 
     worktree_branches | while IFS=$'\t' read -r worktree branch; do
         if ! echo "$branches" | grep -Fxq "$branch"; then
