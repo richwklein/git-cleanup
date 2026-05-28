@@ -163,8 +163,21 @@ fast_forward_main() {
     local main_branch
     main_branch=$(detect_main_branch)
     echo "Fast-forwarding $main_branch..."
-    git fetch origin "$main_branch:$main_branch" --ff-only 2>/dev/null \
-        || error_echo "Could not fast-forward $main_branch (diverged or up to date)."
+
+    # If main is checked out in a worktree, pull from there — git refuses
+    # to update a branch via fetch refspec while it is checked out elsewhere.
+    local main_worktree
+    main_worktree=$(git worktree list --porcelain | awk \
+        -v ref="refs/heads/$main_branch" \
+        '/^worktree / { path = substr($0, 10) } $0 == "branch " ref { print path; exit }')
+
+    if [ -n "$main_worktree" ]; then
+        git -C "$main_worktree" pull --ff-only origin "$main_branch" 2>/dev/null \
+            || error_echo "Could not fast-forward $main_branch (diverged or up to date)."
+    else
+        git fetch origin "$main_branch:$main_branch" --ff-only 2>/dev/null \
+            || error_echo "Could not fast-forward $main_branch (diverged or up to date)."
+    fi
 }
 
 # Prune stale worktree metadata

@@ -4,18 +4,19 @@ Script for cleanup of local git working directories.
 
 ## Description
 
-The `git_cleanup.sh` script is designed to help you clean up your local Git repositories. It performs the following tasks:
+The `git_cleanup.sh` script is designed to help you clean up your local Git repositories. It supports both regular repositories and bare repositories (used with the git worktree workflow). It performs the following tasks:
 
-- Optionally check out the main branch. [-m]
 - Fetches updates from remote repositories and prunes any remote-tracking references that no longer exist on the remote.
-- Removes local branches that have been deleted on the remote.
+- Fast-forwards the main branch to the latest remote commit without requiring a checkout. *(bare repos)*
+- Optionally checks out the main branch before cleanup. [-m] *(regular repos only)*
 - Removes linked worktrees whose checked-out branch has been deleted on the remote.
+- Removes local branches that have been deleted on the remote.
 - Removes local branches that have been merged into the main branch.
 - Skips branches that are currently checked out in any linked Git worktree.
 - Prunes stale Git worktree metadata.
 - Prunes orphaned objects from the local repository.
 - Checks for old stashes and notifies if any are found.
-- Optionally removes any untracked branches. [-u]
+- Optionally removes any untracked branches. [-u] *(regular repos only)*
 
 ## Usage
 
@@ -25,14 +26,21 @@ You can run the script with the following options:
 Usage: ./git_cleanup.sh [-d directory] [-u] [-m]
 ```
 
-* -d directory: Specify the directory to clean up. Defaults to the current directory (.).
-* -u: Removes untracked branches.
-* -m: Checks out the main branch before cleanup when possible.
+- -d directory: Specify the directory to clean up. Defaults to the current directory (.).
+- -u: Removes untracked branches.
+- -m: Checks out the main branch before cleanup when possible.
 
 ### Behavior
 
-If the specified directory is inside a Git working tree, including a linked worktree, the script will clean up that repository.
-If the specified directory is not inside a Git working tree, the script will recurse into child directories to find `.git` directories and `.git` files, so both regular repositories and linked worktrees are included.
+**Directory detection**
+
+If the specified directory is a bare repository, the script cleans it directly. If the directory is inside a regular Git working tree (including a linked worktree), the script cleans that repository. Otherwise the script scans direct subdirectories: subdirectories containing a `.git` directory are treated as regular repositories; subdirectories that are bare repositories are cleaned as bare repos. Each repository is processed once regardless of how many linked worktrees it has.
+
+**Bare repositories**
+
+Bare repos have no working tree, so `checkout_main_branch` and `remove_untracked` are skipped. Instead, the script fast-forwards the main branch directly using `git fetch origin main:main --ff-only`, keeping it current without requiring a checkout. The `-m` flag is accepted but has no effect on bare repos.
+
+**Worktree-aware branch deletion**
 
 When a linked worktree has a checked-out branch whose remote tracking branch has been deleted, the script removes that worktree and deletes the local branch. If the deleted branch is checked out in the current worktree, the script skips it because removing the directory it is running from is unsafe.
 
@@ -56,6 +64,18 @@ Cleaning untracked branches
 
 ```sh
 ./git_cleanup.sh -d /path/to/dir -u
+```
+
+Cleaning a bare repository
+
+```sh
+./git_cleanup.sh -d /path/to/bare-repo
+```
+
+Cleaning a projects directory containing a mix of regular and bare repositories
+
+```sh
+./git_cleanup.sh -d /path/to/projects
 ```
 
 ## Creating a Command Line Alias
@@ -94,9 +114,9 @@ This will execute the [git_cleanup.sh](./git_cleanup.sh) script on the directory
 
 When a pull request is opened or updated, the release version workflow determines the next GitHub release tag. When the pull request merges into the default branch, the workflow creates that GitHub release. Add one of these labels to the pull request to control the version bump:
 
-* `semver:major`: Bumps `v1.2.3` to `v2.0.0`.
-* `semver:minor`: Bumps `v1.2.3` to `v1.3.0`.
-* `semver:patch`: Bumps `v1.2.3` to `v1.2.4`.
+- `semver:major`: Bumps `v1.2.3` to `v2.0.0`.
+- `semver:minor`: Bumps `v1.2.3` to `v1.3.0`.
+- `semver:patch`: Bumps `v1.2.3` to `v1.2.4`.
 
 If no semver label is present, the workflow defaults to a patch release.
 
