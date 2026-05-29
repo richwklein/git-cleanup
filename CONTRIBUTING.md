@@ -19,7 +19,7 @@ docs: clarify deployment steps
 
 ## Branching and PRs
 
-- `main` is protected by a ruleset (see [`docs/BRANCH_PROTECTION.md`](docs/BRANCH_PROTECTION.md)).
+- `main` is protected by a ruleset.
 - Work happens on feature branches. PRs only — no direct pushes to `main`.
 - Merges must be squash or rebase. No merge commits.
 - Branch must be up to date with `main` before merging (strict status checks).
