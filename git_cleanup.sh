@@ -20,7 +20,7 @@ usage() {
 }
 
 # Parse command-line arguments
-while getopts "d:u:m" opt; do
+while getopts "d:um" opt; do
   case $opt in
     d) DIRECTORY="$OPTARG" ;;
     u) DELETE_UNTRACKED=true ;;
