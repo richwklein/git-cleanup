@@ -90,3 +90,26 @@ setup() {
 
     [ "$status" -eq 0 ]
 }
+
+@test "warns about stashes in a worktree" {
+    echo "dirty" > "$WORKTREE_DIR/dirty-file"
+    git -C "$WORKTREE_DIR" add dirty-file
+    git -C "$WORKTREE_DIR" stash push -m "test stash"
+
+    run bash "$SCRIPT" -d "$REPO_DIR"
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Stashes found"* ]]
+}
+
+@test "-u flag removes untracked local branches" {
+    git -C "$WORKTREE_DIR" checkout -b local-only
+    git -C "$WORKTREE_DIR" commit --allow-empty -m "local work"
+    git -C "$WORKTREE_DIR" checkout main
+
+    run bash "$SCRIPT" -d "$REPO_DIR" -u
+
+    [ "$status" -eq 0 ]
+    run git -C "$REPO_DIR" branch --list "local-only"
+    [ -z "$output" ]
+}

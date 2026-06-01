@@ -119,6 +119,7 @@ clean_bare_repository() {
     remove_deleted_worktrees
     remove_deleted_branches
     remove_merged_branches
+    remove_untracked
     prune_local_objects
     check_stashes
 }
@@ -308,7 +309,17 @@ remove_untracked() {
 # Check for stashes
 check_stashes() {
     echo "Checking for old stashes..."
-    if git stash list | grep -q 'stash@'; then
+    local stash_context="."
+    local is_bare
+    is_bare=$(git rev-parse --is-bare-repository 2>/dev/null)
+    if [ "$is_bare" = "true" ]; then
+        stash_context=$(git worktree list --porcelain 2>/dev/null | awk '
+            /^worktree / { path = substr($0, 10) }
+            /^branch /   { print path; exit }
+        ')
+        [ -z "$stash_context" ] && return
+    fi
+    if git -C "$stash_context" stash list 2>/dev/null | grep -q 'stash@'; then
         error_echo "Stashes found. Consider cleaning them manually."
     fi
 }
