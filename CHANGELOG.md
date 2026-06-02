@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.1](https://github.com/richwklein/git-cleanup/compare/v2.2.0...v2.2.1) (2026-06-02)
+
+
+### Bug Fixes
+
+* **bare-repo:** correct flag parsing, stash check, and untracked removal ([#32](https://github.com/richwklein/git-cleanup/issues/32)) ([c2b2d70](https://github.com/richwklein/git-cleanup/commit/c2b2d70089f170988f6eab5557b6fe7b8f8f6f7e))
+
 ## [2.2.0](https://github.com/richwklein/git-cleanup/compare/v2.1.0...v2.2.0) (2026-05-28)
 
 
