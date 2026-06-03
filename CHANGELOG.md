@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.2.2](https://github.com/richwklein/git-cleanup/compare/v2.2.1...v2.2.2) (2026-06-03)
+
+
+### Bug Fixes
+
+* **nested-repos:** do not process repos nested inside a working tree ([#34](https://github.com/richwklein/git-cleanup/issues/34)) ([f8f7727](https://github.com/richwklein/git-cleanup/commit/f8f77275aa72e4e09c7fea3c5264c9706c444346))
+
 ## [2.2.1](https://github.com/richwklein/git-cleanup/compare/v2.2.0...v2.2.1) (2026-06-02)
 
 
