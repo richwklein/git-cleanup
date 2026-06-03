@@ -54,6 +54,20 @@ detect_main_branch() {
     fi
 }
 
+find_git_repo_roots() {
+    local base="$1"
+    local subdir
+    for subdir in "$base"/*/; do
+        [ -d "$subdir" ] || continue
+        subdir="${subdir%/}"
+        if [ -e "$subdir/.git" ]; then
+            echo "$subdir"
+        else
+            find_git_repo_roots "$subdir"
+        fi
+    done
+}
+
 # Function to iterate through directories and clean repositories
 iterate_directories() {
     info_echo "Checking projects in $DIRECTORY..."
@@ -75,10 +89,7 @@ iterate_directories() {
         return
     fi
 
-    # Process regular repos via their .git directory
-    find "$DIRECTORY" -type d -name ".git" | while read -r gitdir; do
-        local repo
-        repo=$(dirname "$gitdir")
+    find_git_repo_roots "$DIRECTORY" | while read -r repo; do
         cd "$repo" || continue
         info_echo "Processing $repo."
         clean_repository
@@ -146,7 +157,7 @@ checkout_main_branch() {
             error_echo "Failed to checkout the main branch."
         fi
     fi
-}   
+}
 
 # Fetch remotes and prune branches
 git_remotes() {

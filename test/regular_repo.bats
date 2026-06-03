@@ -52,3 +52,28 @@ setup() {
     run git -C "$REPO_DIR" branch --list "feature/gone"
     [ -z "$output" ]
 }
+
+@test "does not process a repo nested inside another repo's working tree" {
+    create_remote_branch "feature/outer"
+    delete_remote_branch "feature/outer"
+
+    # Simulate a tool that creates a git repo inside the outer repo's working tree,
+    # e.g. <repo>/<worktree>/parsimony/.git
+    local nested_repo="$REPO_DIR/parsimony"
+    git init "$nested_repo"
+    git -C "$nested_repo" config user.email "test@test.com"
+    git -C "$nested_repo" config user.name "Test"
+    git -C "$nested_repo" config commit.gpgsign false
+    git -C "$nested_repo" commit --allow-empty -m "init"
+    git -C "$nested_repo" checkout -b "feature/nested-branch"
+
+    run bash "$SCRIPT" -d "$BATS_TEST_TMPDIR"
+
+    [ "$status" -eq 0 ]
+    # Outer repo was cleaned
+    run git -C "$REPO_DIR" branch --list "feature/outer"
+    [ -z "$output" ]
+    # Nested repo was not processed — its branch is intact
+    run git -C "$nested_repo" branch --list "feature/nested-branch"
+    [ -n "$output" ]
+}
