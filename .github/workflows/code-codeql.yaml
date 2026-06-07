@@ -63,7 +63,7 @@ jobs:
       # is always registered. A job-level skip leaves that check unreported,
       # which blocks PRs that require it.
       - name: Checkout
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v6.0.3
 
       - name: Detect relevant changes
         id: changes
@@ -71,12 +71,12 @@ jobs:
 
       - name: Initialize CodeQL
         if: steps.changes.outputs.relevant == 'true'
-        uses: github/codeql-action/init@v4.36.0
+        uses: github/codeql-action/init@v4.36.1
         with:
           languages: ${{ matrix.language }}
 
       - name: Perform CodeQL analysis
         if: steps.changes.outputs.relevant == 'true'
-        uses: github/codeql-action/analyze@v4.36.0
+        uses: github/codeql-action/analyze@v4.36.1
         with:
           category: "/language:${{ matrix.language }}"
