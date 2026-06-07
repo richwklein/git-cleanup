@@ -1,4 +1,7 @@
 name: Release
+# No paths filter: release-please must see every push to main so it can
+# parse conventional commits and drive version bumps. Filtering by path
+# would silently skip commits and break the release train.
 on:
   push:
     branches: [main]

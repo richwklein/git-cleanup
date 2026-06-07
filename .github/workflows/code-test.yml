@@ -7,21 +7,31 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
     steps:
+      # Steps are conditionally skipped rather than the job, so the status
+      # check is always registered. A job-level skip leaves it unreported,
+      # which blocks PRs that require it.
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6.0.2
+
+      - name: Detect relevant changes
+        id: changes
+        uses: ./.github/actions/detect-relevant-changes
 
       - name: Install bats
+        if: steps.changes.outputs.relevant == 'true'
         run: |
           sudo apt-get update -q
           sudo apt-get install -y bats
 
       - name: Configure git for tests
+        if: steps.changes.outputs.relevant == 'true'
         run: |
           git config --global user.email "ci@test.com"
           git config --global user.name "CI"
@@ -29,4 +39,5 @@ jobs:
           git config --global init.defaultBranch main
 
       - name: Run tests
+        if: steps.changes.outputs.relevant == 'true'
         run: bats test/

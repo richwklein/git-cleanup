@@ -4,21 +4,32 @@ on:
 
 permissions:
   contents: read
+  pull-requests: read
 
 jobs:
   lint:
     runs-on: ubuntu-latest
     steps:
+      # Steps are conditionally skipped rather than the job, so the status
+      # check is always registered. A job-level skip leaves it unreported,
+      # which blocks PRs that require it.
       - name: 'Checkout source code'
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
+
+      - name: Detect relevant changes
+        id: changes
+        uses: ./.github/actions/detect-relevant-changes
 
       - name: 'Install actionlint'
+        if: steps.changes.outputs.relevant == 'true'
         run: |
           set -euo pipefail
           bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
 
       - name: 'Lint GitHub Actions workflows'
+        if: steps.changes.outputs.relevant == 'true'
         run: ./actionlint -color
 
       - name: 'Lint bash script with shellcheck'
+        if: steps.changes.outputs.relevant == 'true'
         run: shellcheck git_cleanup.sh
