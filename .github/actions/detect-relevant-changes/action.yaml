@@ -1,0 +1,65 @@
+name: 'Detect Relevant Changes'
+description: >
+  For pull_request events, sets relevant=true when any changed file matches one
+  of the supplied regex patterns. For any other event (push, schedule,
+  workflow_run, etc.) sets relevant=true unconditionally so heavy work is
+  preserved on main branch and scheduled runs.
+
+inputs:
+  patterns:
+    description: >
+      Multi-line list of JavaScript-compatible regex patterns matched against
+      the full path of each changed file. When empty, falls back to a default
+      set covering workflow and action edits.
+    required: false
+    default: ''
+
+outputs:
+  relevant:
+    description: 'true when heavy steps should run; false when the job should noop'
+    value: ${{ steps.detect.outputs.relevant }}
+
+runs:
+  using: 'composite'
+  steps:
+    - id: detect
+      uses: actions/github-script@v7
+      env:
+        PATTERNS: ${{ inputs.patterns }}
+      with:
+        script: |
+          const DEFAULT_PATTERNS = [
+            String.raw`^\.github/(workflows|actions)/`,
+            String.raw`^src/`,
+            String.raw`^lib/`,
+            String.raw`^tests?/`,
+            String.raw`^[^/]+\.(sh|bash|py|js|ts|go|rs|rb|java|kt)$`,
+          ];
+
+          if (context.eventName !== 'pull_request') {
+            core.info(`Event ${context.eventName}: running heavy work unconditionally.`);
+            core.setOutput('relevant', 'true');
+            return;
+          }
+
+          const raw = (process.env.PATTERNS || '').trim();
+          const sources = raw
+            ? raw.split('\n').map((s) => s.trim()).filter(Boolean)
+            : DEFAULT_PATTERNS;
+          const patterns = sources.map((s) => new RegExp(s));
+
+          const files = await github.paginate(github.rest.pulls.listFiles, {
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            pull_number: context.payload.pull_request.number,
+            per_page: 100,
+          });
+
+          const hit = files.find((f) => patterns.some((p) => p.test(f.filename)));
+          if (hit) {
+            core.info(`Relevant change detected: ${hit.filename}`);
+            core.setOutput('relevant', 'true');
+          } else {
+            core.info(`No relevant changes in ${files.length} files.`);
+            core.setOutput('relevant', 'false');
+          }

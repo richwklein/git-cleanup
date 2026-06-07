@@ -6,11 +6,12 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    - cron: '23 4 * * 1' # weekly, Monday 04:23 UTC
+    - cron: "23 4 * * 1" # weekly, Monday 04:23 UTC
 
 permissions:
   actions: read
   contents: read
+  pull-requests: read
   security-events: write
 
 jobs:
@@ -29,6 +30,13 @@ jobs:
         #   swift                       -> macos-latest
         #     (Swift extractor only runs on macOS)
         #
+        # PATH FILTERS: The detect-relevant-changes action defaults to
+        # .github/workflows/** and .github/actions/**. When adding a
+        # language entry here, pass the relevant source patterns via the
+        # `patterns` input so the job noop's when nothing important changed.
+        # Per-language pattern selection can be done inline:
+        #   patterns: ${{ matrix.language == 'actions' && '...' || '...' }}
+        #
         # COMPILED LANGUAGES (swift, c-cpp, java-kotlin, csharp) require a
         # build step BEFORE 'Perform CodeQL analysis' so the extractor can
         # observe source compilation. Example for Swift:
@@ -43,20 +51,32 @@ jobs:
         #
         # Each include entry registers its own status check, named
         # `analyze (<language>, <runner>)`. Update branch protection
-        # rulesets to require those exact contexts.
+        # rulesets to require those exact contexts. Keep this matrix
+        # free of extra keys — anything added here becomes part of the
+        # status check name and would break the required-check contexts.
         include:
           - language: actions
             runner: ubuntu-latest
     steps:
+      # Steps are conditionally skipped rather than the job, so the
+      # matrix-expanded status check (e.g. "analyze (actions, ubuntu-latest)")
+      # is always registered. A job-level skip leaves that check unreported,
+      # which blocks PRs that require it.
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v6.0.2
+
+      - name: Detect relevant changes
+        id: changes
+        uses: ./.github/actions/detect-relevant-changes
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4.35.5
+        if: steps.changes.outputs.relevant == 'true'
+        uses: github/codeql-action/init@v4.36.0
         with:
           languages: ${{ matrix.language }}
 
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v4.35.5
+        if: steps.changes.outputs.relevant == 'true'
+        uses: github/codeql-action/analyze@v4.36.0
         with:
-          category: '/language:${{ matrix.language }}'
+          category: "/language:${{ matrix.language }}"
