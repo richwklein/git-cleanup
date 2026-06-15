@@ -1,0 +1,14 @@
+# Auto-applied PR labels by head-branch prefix.
+# See AGENTS.md for the branch-prefix convention.
+
+bug:
+  - head-branch: ['^(fix|bug|bugfix)-']
+
+enhancement:
+  - head-branch: ['^(feat|feature)-']
+
+task:
+  - head-branch: ['^(chore|refactor|test|build|ci|perf|style|task|maint|maintenance)-']
+
+documentation:
+  - head-branch: ['^(docs|doc)-']
