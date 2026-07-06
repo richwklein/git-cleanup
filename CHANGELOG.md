@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.3.0](https://github.com/richwklein/git-cleanup/compare/v2.2.2...v2.3.0) (2026-07-06)
+
+
+### Features
+
+* **worktrees:** remove merged worktrees and repair branch cleanup gaps ([#41](https://github.com/richwklein/git-cleanup/issues/41)) ([7c06dd0](https://github.com/richwklein/git-cleanup/commit/7c06dd0f8e9a3404fc36a1916fff5d764453d6d7))
+
 ## [2.2.2](https://github.com/richwklein/git-cleanup/compare/v2.2.1...v2.2.2) (2026-06-03)
 
 
