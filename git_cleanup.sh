@@ -124,6 +124,7 @@ clean_repository() {
 
 # Function to clean a bare repository
 clean_bare_repository() {
+    ensure_fetch_refspecs
     fetch_remotes
     fast_forward_main
     prune_worktrees
@@ -164,10 +165,21 @@ git_remotes() {
     git remote 2>/dev/null
 }
 
+# A stock 'git clone --bare' has no fetch refspec, so remote-tracking refs
+# never exist and gone-upstream detection cannot find deleted branches.
+ensure_fetch_refspecs() {
+    local remote
+    for remote in $(git_remotes); do
+        if [ -z "$(git config --get-all "remote.$remote.fetch")" ]; then
+            info_echo "Adding missing fetch refspec for remote $remote."
+            git config "remote.$remote.fetch" "+refs/heads/*:refs/remotes/$remote/*"
+        fi
+    done
+}
+
 fetch_remotes() {
     echo "Fetching remote changes and pruning removed branches..."
-    # shellcheck disable=SC2046 # intentional word-splitting on remote names
-    git fetch --prune $(git_remotes)
+    git fetch --all --prune
 }
 
 # Fast-forward main branch without checking it out (safe in bare repos and worktrees)
@@ -187,7 +199,8 @@ fast_forward_main() {
         git -C "$main_worktree" pull --ff-only origin "$main_branch" 2>/dev/null \
             || error_echo "Could not fast-forward $main_branch (diverged or up to date)."
     else
-        git fetch origin "$main_branch:$main_branch" --ff-only 2>/dev/null \
+        # A refspec without a leading + already refuses non-fast-forward updates.
+        git fetch origin "$main_branch:$main_branch" 2>/dev/null \
             || error_echo "Could not fast-forward $main_branch (diverged or up to date)."
     fi
 }
@@ -235,10 +248,9 @@ worktree_branches() {
     '
 }
 
-remove_deleted_worktrees() {
-    echo "Removing worktrees with deleted remote tracking..."
-    local branches
-    branches=$(gone_tracking_branches)
+# Remove worktrees whose branch is in the given list, deleting the branch after
+remove_worktrees_for_branches() {
+    local branches="$1"
 
     if [[ -z "$branches" ]]; then
         return
@@ -257,7 +269,7 @@ remove_deleted_worktrees() {
             continue
         fi
 
-        echo "Removing worktree $worktree for deleted branch $branch..."
+        echo "Removing worktree $worktree for branch $branch..."
         if git worktree remove "$worktree"; then
             git branch -D "$branch"
         else
@@ -266,11 +278,21 @@ remove_deleted_worktrees() {
     done
 }
 
+remove_deleted_worktrees() {
+    echo "Removing worktrees with deleted remote tracking..."
+    remove_worktrees_for_branches "$(gone_tracking_branches)"
+}
+
 # Function to delete branches
 delete_branches() {
     local branches="$1"
     if [[ -n "$branches" ]]; then
         echo "$branches" | while read -r branch; do
+            # Branch may already be gone if its worktree was removed
+            if ! git show-ref --verify --quiet "refs/heads/$branch"; then
+                continue
+            fi
+
             if is_branch_checked_out "$branch"; then
                 error_echo "Skipping $branch because it is checked out in a worktree."
                 continue
@@ -294,10 +316,19 @@ remove_merged_branches() {
     echo "Removing merged local branches..."
     local main_branch
     main_branch=$(detect_main_branch)
+
+    # Prefer the remote-tracking ref as the merge base — it is current right
+    # after the fetch, while local main may be stale.
+    local merge_base="$main_branch"
+    if git show-ref --verify --quiet "refs/remotes/origin/$main_branch"; then
+        merge_base="origin/$main_branch"
+    fi
+
     local current_branch
     current_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
     local branches
-    branches=$(git branch --format "%(refname:short)" --merged "$main_branch" | grep -Fvx -e "$main_branch" -e "$current_branch")
+    branches=$(git branch --format "%(refname:short)" --merged "$merge_base" | grep -Fvx -e "$main_branch" -e "$current_branch")
+    remove_worktrees_for_branches "$branches"
     delete_branches "$branches"
 }
 
@@ -307,12 +338,18 @@ prune_local_objects() {
     git prune --progress
 }
 
-# Remove untracked branches
+# Remove local branches that do not track any remote branch
 remove_untracked() {
     if [ "$DELETE_UNTRACKED" = true ]; then
         echo "Removing untracked branches..."
+        local main_branch
+        main_branch=$(detect_main_branch)
+        local current_branch
+        current_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
         local branches
-        branches=$(git branch --format "%(refname:short)" --no-merged)
+        branches=$(git branch --format "%(refname:short) %(upstream)" \
+            | awk 'NF == 1 {print $1}' \
+            | grep -Fvx -e "$main_branch" -e "$current_branch")
         delete_branches "$branches"
     fi
 }

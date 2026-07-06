@@ -42,6 +42,48 @@ setup() {
     [ -z "$output" ]
 }
 
+@test "removes a branch merged on the remote when local main is stale" {
+    create_remote_branch "feature/merged"
+
+    # Merge the branch into main on the remote from a separate clone,
+    # leaving local main behind and the remote branch in place
+    local pusher="$BATS_TEST_TMPDIR/pusher"
+    git clone "$REMOTE_DIR" "$pusher"
+    git -C "$pusher" config user.email "test@test.com"
+    git -C "$pusher" config user.name "Test"
+    git -C "$pusher" config commit.gpgsign false
+    git -C "$pusher" merge "origin/feature/merged"
+    git -C "$pusher" push origin main
+
+    run bash "$SCRIPT" -d "$REPO_DIR"
+
+    [ "$status" -eq 0 ]
+    run git -C "$REPO_DIR" branch --list "feature/merged"
+    [ -z "$output" ]
+}
+
+@test "-u removes only branches without an upstream" {
+    create_remote_branch "feature/active"
+    git -C "$REPO_DIR" commit --allow-empty -m "main advance"
+    git -C "$REPO_DIR" checkout -b scratch main^
+    git -C "$REPO_DIR" commit --allow-empty -m "scratch work"
+    git -C "$REPO_DIR" checkout -b wip main^
+
+    run bash "$SCRIPT" -d "$REPO_DIR" -u
+
+    [ "$status" -eq 0 ]
+    # untracked branch is removed
+    run git -C "$REPO_DIR" branch --list "scratch"
+    [ -z "$output" ]
+    # main, the current branch, and tracked branches survive
+    run git -C "$REPO_DIR" branch --list "main"
+    [ -n "$output" ]
+    run git -C "$REPO_DIR" branch --list "wip"
+    [ -n "$output" ]
+    run git -C "$REPO_DIR" branch --list "feature/active"
+    [ -n "$output" ]
+}
+
 @test "scans subdirectories when given a parent directory" {
     create_remote_branch "feature/gone"
     delete_remote_branch "feature/gone"

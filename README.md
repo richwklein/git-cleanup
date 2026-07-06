@@ -9,14 +9,14 @@ The `git_cleanup.sh` script is designed to help you clean up your local Git repo
 - Fetches updates from remote repositories and prunes any remote-tracking references that no longer exist on the remote.
 - Fast-forwards the main branch to the latest remote commit without requiring a checkout. *(bare repos)*
 - Optionally checks out the main branch before cleanup. [-m] *(regular repos only)*
-- Removes linked worktrees whose checked-out branch has been deleted on the remote.
+- Removes linked worktrees whose checked-out branch has been deleted on the remote or merged into the main branch.
 - Removes local branches that have been deleted on the remote.
-- Removes local branches that have been merged into the main branch.
+- Removes local branches that have been merged into the main branch (checked against the remote-tracking ref when available, so a stale local main does not hide fresh merges).
 - Skips branches that are currently checked out in any linked Git worktree.
 - Prunes stale Git worktree metadata.
 - Prunes orphaned objects from the local repository.
 - Checks for old stashes and notifies if any are found.
-- Optionally removes any untracked branches. [-u] *(regular repos only)*
+- Optionally removes untracked branches — local branches that do not track any remote branch. [-u]
 
 ## Usage
 
@@ -27,7 +27,7 @@ Usage: ./git_cleanup.sh [-d directory] [-u] [-m]
 ```
 
 - -d directory: Specify the directory to clean up. Defaults to the current directory (.).
-- -u: Removes untracked branches.
+- -u: Removes local branches that do not track any remote branch. The main branch and the currently checked-out branch are never removed.
 - -m: Checks out the main branch before cleanup when possible.
 
 ### Behavior
@@ -38,11 +38,13 @@ If the specified directory is a bare repository, the script cleans it directly. 
 
 **Bare repositories**
 
-Bare repos have no working tree, so `checkout_main_branch` and `remove_untracked` are skipped. Instead, the script fast-forwards the main branch directly using `git fetch origin main:main --ff-only`, keeping it current without requiring a checkout. The `-m` flag is accepted but has no effect on bare repos.
+Bare repos have no working tree, so `checkout_main_branch` is skipped. Instead, the script fast-forwards the main branch directly using a fetch refspec (`git fetch origin main:main`), keeping it current without requiring a checkout; when the main branch is checked out in a linked worktree, the script pulls from that worktree instead. The `-m` flag is accepted but has no effect on bare repos.
+
+A stock `git clone --bare` has no fetch refspec, so remote-tracking refs never exist and deleted remote branches cannot be detected. The script adds the standard refspec (`+refs/heads/*:refs/remotes/<remote>/*`) to any remote missing one before fetching.
 
 **Worktree-aware branch deletion**
 
-When a linked worktree has a checked-out branch whose remote tracking branch has been deleted, the script removes that worktree and deletes the local branch. If the deleted branch is checked out in the current worktree, the script skips it because removing the directory it is running from is unsafe.
+When a linked worktree has a checked-out branch whose remote tracking branch has been deleted, or that has been merged into the main branch, the script removes that worktree and deletes the local branch. Worktrees with uncommitted or untracked changes are left in place. If the affected branch is checked out in the current worktree, the script skips it because removing the directory it is running from is unsafe.
 
 When deleting other branches, the script skips branches that are checked out by any worktree because Git does not allow those branches to be deleted. When `-m` is used from a worktree, the script also skips checking out the main branch if that branch is already checked out by another worktree.
 
