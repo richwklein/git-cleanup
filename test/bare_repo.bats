@@ -83,6 +83,37 @@ setup() {
     [ -z "$output" ]
 }
 
+@test "removes worktree for a merged branch still on the remote" {
+    create_remote_branch "feature/merged"
+    git -C "$WORKTREE_DIR" merge "feature/merged"
+    git -C "$WORKTREE_DIR" push origin main
+    local wt_path="$REPO_DIR/feature-merged"
+    git -C "$REPO_DIR" worktree add "$wt_path" "feature/merged"
+
+    run bash "$SCRIPT" -d "$REPO_DIR"
+
+    [ "$status" -eq 0 ]
+    [ ! -d "$wt_path" ]
+    run git -C "$REPO_DIR" branch --list "feature/merged"
+    [ -z "$output" ]
+}
+
+@test "keeps a dirty worktree for a merged branch" {
+    create_remote_branch "feature/merged"
+    git -C "$WORKTREE_DIR" merge "feature/merged"
+    git -C "$WORKTREE_DIR" push origin main
+    local wt_path="$REPO_DIR/feature-merged"
+    git -C "$REPO_DIR" worktree add "$wt_path" "feature/merged"
+    echo "uncommitted" > "$wt_path/leftover"
+
+    run bash "$SCRIPT" -d "$REPO_DIR"
+
+    [ "$status" -eq 0 ]
+    [ -d "$wt_path" ]
+    run git -C "$REPO_DIR" branch --list "feature/merged"
+    [ -n "$output" ]
+}
+
 @test "adds fetch refspec to a stock bare clone so gone branches are cleaned" {
     create_remote_branch "feature/gone"
     delete_remote_branch "feature/gone"

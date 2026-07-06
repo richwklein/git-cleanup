@@ -248,10 +248,9 @@ worktree_branches() {
     '
 }
 
-remove_deleted_worktrees() {
-    echo "Removing worktrees with deleted remote tracking..."
-    local branches
-    branches=$(gone_tracking_branches)
+# Remove worktrees whose branch is in the given list, deleting the branch after
+remove_worktrees_for_branches() {
+    local branches="$1"
 
     if [[ -z "$branches" ]]; then
         return
@@ -270,7 +269,7 @@ remove_deleted_worktrees() {
             continue
         fi
 
-        echo "Removing worktree $worktree for deleted branch $branch..."
+        echo "Removing worktree $worktree for branch $branch..."
         if git worktree remove "$worktree"; then
             git branch -D "$branch"
         else
@@ -279,11 +278,21 @@ remove_deleted_worktrees() {
     done
 }
 
+remove_deleted_worktrees() {
+    echo "Removing worktrees with deleted remote tracking..."
+    remove_worktrees_for_branches "$(gone_tracking_branches)"
+}
+
 # Function to delete branches
 delete_branches() {
     local branches="$1"
     if [[ -n "$branches" ]]; then
         echo "$branches" | while read -r branch; do
+            # Branch may already be gone if its worktree was removed
+            if ! git show-ref --verify --quiet "refs/heads/$branch"; then
+                continue
+            fi
+
             if is_branch_checked_out "$branch"; then
                 error_echo "Skipping $branch because it is checked out in a worktree."
                 continue
@@ -311,6 +320,7 @@ remove_merged_branches() {
     current_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
     local branches
     branches=$(git branch --format "%(refname:short)" --merged "$main_branch" | grep -Fvx -e "$main_branch" -e "$current_branch")
+    remove_worktrees_for_branches "$branches"
     delete_branches "$branches"
 }
 
