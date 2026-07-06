@@ -166,8 +166,7 @@ git_remotes() {
 
 fetch_remotes() {
     echo "Fetching remote changes and pruning removed branches..."
-    # shellcheck disable=SC2046 # intentional word-splitting on remote names
-    git fetch --prune $(git_remotes)
+    git fetch --all --prune
 }
 
 # Fast-forward main branch without checking it out (safe in bare repos and worktrees)
@@ -187,7 +186,8 @@ fast_forward_main() {
         git -C "$main_worktree" pull --ff-only origin "$main_branch" 2>/dev/null \
             || error_echo "Could not fast-forward $main_branch (diverged or up to date)."
     else
-        git fetch origin "$main_branch:$main_branch" --ff-only 2>/dev/null \
+        # A refspec without a leading + already refuses non-fast-forward updates.
+        git fetch origin "$main_branch:$main_branch" 2>/dev/null \
             || error_echo "Could not fast-forward $main_branch (diverged or up to date)."
     fi
 }

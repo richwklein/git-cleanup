@@ -26,6 +26,28 @@ setup() {
     [ "$local_sha" = "$remote_sha" ]
 }
 
+@test "fast-forwards main when it has no worktree" {
+    git -C "$REPO_DIR" worktree remove "$WORKTREE_DIR"
+
+    # Push a new commit to remote from a separate clone
+    local pusher="$BATS_TEST_TMPDIR/pusher"
+    git clone "$REMOTE_DIR" "$pusher"
+    git -C "$pusher" config user.email "test@test.com"
+    git -C "$pusher" config user.name "Test"
+    git -C "$pusher" config commit.gpgsign false
+    git -C "$pusher" commit --allow-empty -m "remote advance"
+    git -C "$pusher" push origin main
+    local remote_sha
+    remote_sha=$(git -C "$pusher" rev-parse HEAD)
+
+    run bash "$SCRIPT" -d "$REPO_DIR"
+
+    [ "$status" -eq 0 ]
+    local local_sha
+    local_sha=$(git -C "$REPO_DIR" rev-parse main)
+    [ "$local_sha" = "$remote_sha" ]
+}
+
 @test "removes a branch deleted on the remote" {
     create_remote_branch "feature/gone"
     delete_remote_branch "feature/gone"
@@ -57,6 +79,18 @@ setup() {
 
     [ "$status" -eq 0 ]
     [ ! -d "$wt_path" ]
+    run git -C "$REPO_DIR" branch --list "feature/gone"
+    [ -z "$output" ]
+}
+
+@test "prunes gone branches when multiple remotes exist" {
+    create_remote_branch "feature/gone"
+    delete_remote_branch "feature/gone"
+    git -C "$REPO_DIR" remote add backup "$REMOTE_DIR"
+
+    run bash "$SCRIPT" -d "$REPO_DIR"
+
+    [ "$status" -eq 0 ]
     run git -C "$REPO_DIR" branch --list "feature/gone"
     [ -z "$output" ]
 }
