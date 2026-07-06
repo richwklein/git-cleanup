@@ -316,10 +316,18 @@ remove_merged_branches() {
     echo "Removing merged local branches..."
     local main_branch
     main_branch=$(detect_main_branch)
+
+    # Prefer the remote-tracking ref as the merge base — it is current right
+    # after the fetch, while local main may be stale.
+    local merge_base="$main_branch"
+    if git show-ref --verify --quiet "refs/remotes/origin/$main_branch"; then
+        merge_base="origin/$main_branch"
+    fi
+
     local current_branch
     current_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
     local branches
-    branches=$(git branch --format "%(refname:short)" --merged "$main_branch" | grep -Fvx -e "$main_branch" -e "$current_branch")
+    branches=$(git branch --format "%(refname:short)" --merged "$merge_base" | grep -Fvx -e "$main_branch" -e "$current_branch")
     remove_worktrees_for_branches "$branches"
     delete_branches "$branches"
 }
