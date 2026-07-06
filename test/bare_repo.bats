@@ -83,6 +83,26 @@ setup() {
     [ -z "$output" ]
 }
 
+@test "adds fetch refspec to a stock bare clone so gone branches are cleaned" {
+    create_remote_branch "feature/gone"
+    delete_remote_branch "feature/gone"
+
+    # Simulate a stock 'git clone --bare': no fetch refspec, no remote-tracking refs
+    git -C "$REPO_DIR" config --unset-all remote.origin.fetch
+    git -C "$REPO_DIR" symbolic-ref --delete refs/remotes/origin/HEAD 2>/dev/null || true
+    git -C "$REPO_DIR" for-each-ref 'refs/remotes' --format='%(refname)' | while read -r ref; do
+        git -C "$REPO_DIR" update-ref -d "$ref"
+    done
+
+    run bash "$SCRIPT" -d "$REPO_DIR"
+
+    [ "$status" -eq 0 ]
+    run git -C "$REPO_DIR" config --get remote.origin.fetch
+    [ -n "$output" ]
+    run git -C "$REPO_DIR" branch --list "feature/gone"
+    [ -z "$output" ]
+}
+
 @test "prunes gone branches when multiple remotes exist" {
     create_remote_branch "feature/gone"
     delete_remote_branch "feature/gone"

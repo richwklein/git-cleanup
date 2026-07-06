@@ -124,6 +124,7 @@ clean_repository() {
 
 # Function to clean a bare repository
 clean_bare_repository() {
+    ensure_fetch_refspecs
     fetch_remotes
     fast_forward_main
     prune_worktrees
@@ -162,6 +163,18 @@ checkout_main_branch() {
 # Fetch remotes and prune branches
 git_remotes() {
     git remote 2>/dev/null
+}
+
+# A stock 'git clone --bare' has no fetch refspec, so remote-tracking refs
+# never exist and gone-upstream detection cannot find deleted branches.
+ensure_fetch_refspecs() {
+    local remote
+    for remote in $(git_remotes); do
+        if [ -z "$(git config --get-all "remote.$remote.fetch")" ]; then
+            info_echo "Adding missing fetch refspec for remote $remote."
+            git config "remote.$remote.fetch" "+refs/heads/*:refs/remotes/$remote/*"
+        fi
+    done
 }
 
 fetch_remotes() {
