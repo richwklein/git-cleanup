@@ -62,6 +62,28 @@ setup() {
     [ -z "$output" ]
 }
 
+@test "-u removes only branches without an upstream" {
+    create_remote_branch "feature/active"
+    git -C "$REPO_DIR" commit --allow-empty -m "main advance"
+    git -C "$REPO_DIR" checkout -b scratch main^
+    git -C "$REPO_DIR" commit --allow-empty -m "scratch work"
+    git -C "$REPO_DIR" checkout -b wip main^
+
+    run bash "$SCRIPT" -d "$REPO_DIR" -u
+
+    [ "$status" -eq 0 ]
+    # untracked branch is removed
+    run git -C "$REPO_DIR" branch --list "scratch"
+    [ -z "$output" ]
+    # main, the current branch, and tracked branches survive
+    run git -C "$REPO_DIR" branch --list "main"
+    [ -n "$output" ]
+    run git -C "$REPO_DIR" branch --list "wip"
+    [ -n "$output" ]
+    run git -C "$REPO_DIR" branch --list "feature/active"
+    [ -n "$output" ]
+}
+
 @test "scans subdirectories when given a parent directory" {
     create_remote_branch "feature/gone"
     delete_remote_branch "feature/gone"

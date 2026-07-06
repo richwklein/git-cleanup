@@ -338,12 +338,18 @@ prune_local_objects() {
     git prune --progress
 }
 
-# Remove untracked branches
+# Remove local branches that do not track any remote branch
 remove_untracked() {
     if [ "$DELETE_UNTRACKED" = true ]; then
         echo "Removing untracked branches..."
+        local main_branch
+        main_branch=$(detect_main_branch)
+        local current_branch
+        current_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
         local branches
-        branches=$(git branch --format "%(refname:short)" --no-merged)
+        branches=$(git branch --format "%(refname:short) %(upstream)" \
+            | awk 'NF == 1 {print $1}' \
+            | grep -Fvx -e "$main_branch" -e "$current_branch")
         delete_branches "$branches"
     fi
 }
