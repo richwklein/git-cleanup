@@ -1,0 +1,9 @@
+[
+  { "name": "idea",            "color": "c5def5", "description": "Rough idea or note captured for later." },
+  { "name": "bug",             "color": "d73a4a", "description": "Something isn't working." },
+  { "name": "enhancement",     "color": "a2eeef", "description": "New capability or meaningful improvement." },
+  { "name": "task",            "color": "e4e669", "description": "Upkeep, refactoring, cleanup, docs, or process work." },
+  { "name": "documentation",   "color": "0075ca", "description": "Improvements or additions to documentation." },
+  { "name": "dependencies",    "color": "0366d6", "description": "Dependency version updates." },
+  { "name": "breaking-change", "color": "b60205", "description": "Introduces a backwards-incompatible change." }
+]

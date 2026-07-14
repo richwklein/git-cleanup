@@ -1,0 +1,30 @@
+name: Seed labels
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/labels.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  seed:
+    name: seed
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Create or update labels
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          jq -c '.[]' .github/labels.json | while IFS= read -r label; do
+            name=$(jq -r '.name' <<< "$label")
+            color=$(jq -r '.color' <<< "$label")
+            description=$(jq -r '.description' <<< "$label")
+            gh label create "$name" --color "$color" --description "$description" --force
+          done
