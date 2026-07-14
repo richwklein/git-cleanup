@@ -14,7 +14,7 @@ jobs:
       # check is always registered. A job-level skip leaves it unreported,
       # which blocks PRs that require it.
       - name: 'Checkout source code'
-        uses: actions/checkout@v7.0.0
+        uses: actions/checkout@v7
 
       - name: Detect relevant changes
         id: changes
