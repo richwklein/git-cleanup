@@ -10,6 +10,9 @@ updates:
     labels:
       - 'dependencies'
     groups:
-      github-actions:
+      first-party-actions:
         patterns:
-          - '*'
+          - 'actions/*'
+      third-party-actions:
+        exclude-patterns:
+          - 'actions/*'
