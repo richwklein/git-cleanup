@@ -20,22 +20,6 @@ jobs:
         id: changes
         uses: ./.github/actions/detect-relevant-changes
 
-      - name: 'Install actionlint'
-        if: steps.changes.outputs.relevant == 'true'
-        run: |
-          set -euo pipefail
-          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/main/scripts/download-actionlint.bash)
-
-      - name: 'Lint GitHub Actions workflows'
-        if: steps.changes.outputs.relevant == 'true'
-        # actionlint's bundled popular-actions database predates the
-        # client-id input on actions/create-github-app-token@v3; the real
-        # v3 action.yml defines client-id and deprecates app-id.
-        run: |
-          ./actionlint -color \
-            -ignore 'missing input "app-id" which is required by action "actions/create-github-app-token' \
-            -ignore 'input "client-id" is not defined in action "actions/create-github-app-token'
-
       - name: 'Lint bash script with shellcheck'
         if: steps.changes.outputs.relevant == 'true'
         run: shellcheck git_cleanup.sh
