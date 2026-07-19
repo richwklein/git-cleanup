@@ -22,6 +22,28 @@ verbose_echo() {
     fi
 }
 
+# Colorize git diagnostic lines from a command's combined output.
+# error:/fatal: (incl. remote: variants) -> RED; warning: -> YELLOW.
+highlight_stream() {
+    local line
+    while IFS= read -r line || [ -n "$line" ]; do
+        if [[ "$line" =~ ^(remote:[[:space:]]*)?(error|fatal): ]]; then
+            printf "%b%s%b\n" "$RED" "$line" "$NO_COLOR" >&2
+        elif [[ "$line" =~ ^(remote:[[:space:]]*)?warning: ]]; then
+            printf "%b%s%b\n" "$YELLOW" "$line" "$NO_COLOR" >&2
+        else
+            printf "%s\n" "$line"
+        fi
+    done
+}
+
+# Run a command, streaming its combined output through the error highlighter
+# while preserving the command's own exit status.
+run_highlighted() (
+    set -o pipefail
+    "$@" 2>&1 | highlight_stream
+)
+
 usage() {
     echo "Usage: $0 [-d directory] [-u] [-m] [-q]"
 }
@@ -163,7 +185,7 @@ checkout_main_branch() {
             return
         fi
 
-        if ! git checkout "$main_branch"; then
+        if ! run_highlighted git checkout "$main_branch"; then
             error_echo "Failed to checkout the main branch."
         fi
     fi
@@ -188,7 +210,7 @@ ensure_fetch_refspecs() {
 
 fetch_remotes() {
     verbose_echo "Fetching remote changes and pruning removed branches..."
-    git fetch --all --prune
+    run_highlighted git fetch --all --prune
 }
 
 # Fast-forward main branch without checking it out (safe in bare repos and worktrees)
@@ -218,7 +240,7 @@ fast_forward_main() {
 prune_worktrees() {
     if git worktree list >/dev/null 2>&1; then
         verbose_echo "Pruning stale worktree metadata..."
-        git worktree prune
+        run_highlighted git worktree prune
     fi
 }
 
@@ -279,8 +301,8 @@ remove_worktrees_for_branches() {
         fi
 
         verbose_echo "Removing worktree $worktree for branch $branch..."
-        if git worktree remove "$worktree"; then
-            git branch -D "$branch"
+        if run_highlighted git worktree remove "$worktree"; then
+            run_highlighted git branch -D "$branch"
         else
             error_echo "Failed to remove worktree $worktree for branch $branch."
         fi
@@ -307,7 +329,7 @@ delete_branches() {
                 continue
             fi
 
-            git branch -D "$branch"
+            run_highlighted git branch -D "$branch"
         done
     fi
 }
@@ -344,7 +366,7 @@ remove_merged_branches() {
 # Prune orphaned objects
 prune_local_objects() {
     verbose_echo "Removing orphaned objects..."
-    git prune --progress
+    run_highlighted git prune --progress
 }
 
 # Remove local branches that do not track any remote branch
