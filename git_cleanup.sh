@@ -404,3 +404,5 @@ check_stashes() {
 }
 
 iterate_directories
+
+info_echo "Cleanup complete."
