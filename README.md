@@ -23,12 +23,13 @@ The `git_cleanup.sh` script is designed to help you clean up your local Git repo
 You can run the script with the following options:
 
 ```sh
-Usage: ./git_cleanup.sh [-d directory] [-u] [-m]
+Usage: ./git_cleanup.sh [-d directory] [-u] [-m] [-q]
 ```
 
 - -d directory: Specify the directory to clean up. Defaults to the current directory (.).
 - -u: Removes local branches that do not track any remote branch. The main branch and the currently checked-out branch are never removed.
 - -m: Checks out the main branch before cleanup when possible.
+- -q: Quiet mode. Suppresses sub-operation progress messages; only top-level repository headers and errors are printed.
 
 ### Behavior
 

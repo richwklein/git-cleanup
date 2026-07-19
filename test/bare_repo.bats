@@ -187,6 +187,24 @@ setup() {
     [[ "$output" == *"Stashes found"* ]]
 }
 
+@test "-q flag is accepted on bare repo" {
+    run bash "$SCRIPT" -d "$REPO_DIR" -q
+
+    [ "$status" -eq 0 ]
+}
+
+@test "-q suppresses sub-operation output but still shows errors" {
+    echo "dirty" > "$WORKTREE_DIR/dirty-file"
+    git -C "$WORKTREE_DIR" add dirty-file
+    git -C "$WORKTREE_DIR" stash push -m "test stash"
+
+    run bash "$SCRIPT" -d "$REPO_DIR" -q
+
+    [ "$status" -eq 0 ]
+    [[ "$output" != *"Fetching remote changes"* ]]
+    [[ "$output" == *"Stashes found"* ]]
+}
+
 @test "-u flag removes untracked local branches" {
     git -C "$WORKTREE_DIR" checkout -b local-only
     git -C "$WORKTREE_DIR" commit --allow-empty -m "local work"
