@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.4.0](https://github.com/richwklein/git-cleanup/compare/v2.3.0...v2.4.0) (2026-07-19)
+
+
+### Features
+
+* add -q quiet mode flag ([#46](https://github.com/richwklein/git-cleanup/issues/46)) ([7bf0f43](https://github.com/richwklein/git-cleanup/commit/7bf0f434adecb765a783f4a5e999bb3ec4e716a3))
+* highlight git errors and warnings in command output ([#48](https://github.com/richwklein/git-cleanup/issues/48)) ([3ea245f](https://github.com/richwklein/git-cleanup/commit/3ea245fa4518100cda8f56cc6209f1e4019e5713))
+
 ## [2.3.0](https://github.com/richwklein/git-cleanup/compare/v2.2.2...v2.3.0) (2026-07-06)
 
 
