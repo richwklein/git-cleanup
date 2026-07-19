@@ -114,6 +114,22 @@ setup() {
     [ -n "$output" ]
 }
 
+@test "highlights git error output in the error color" {
+    create_remote_branch "feature/merged"
+    git -C "$WORKTREE_DIR" merge "feature/merged"
+    git -C "$WORKTREE_DIR" push origin main
+    local wt_path="$REPO_DIR/feature-merged"
+    git -C "$REPO_DIR" worktree add "$wt_path" "feature/merged"
+    echo "uncommitted" > "$wt_path/leftover"
+
+    run bash "$SCRIPT" -d "$REPO_DIR"
+
+    [ "$status" -eq 0 ]
+    # git's own "fatal:" diagnostic is wrapped in the RED color code
+    local red=$'\033[0;31m'
+    [[ "$output" == *"${red}fatal:"* ]]
+}
+
 @test "adds fetch refspec to a stock bare clone so gone branches are cleaned" {
     create_remote_branch "feature/gone"
     delete_remote_branch "feature/gone"
