@@ -15,16 +15,24 @@ error_echo() {
     printf "%b%s%b\n" "$RED" "$1" "$NO_COLOR" >&2
 }
 
+# Print sub-operation messages suppressed by -q
+verbose_echo() {
+    if [ "$QUIET" = false ]; then
+        echo "$1"
+    fi
+}
+
 usage() {
-    echo "Usage: $0 [-d directory] [-u] [-m]"
+    echo "Usage: $0 [-d directory] [-u] [-m] [-q]"
 }
 
 # Parse command-line arguments
-while getopts "d:um" opt; do
+while getopts "d:umq" opt; do
   case $opt in
     d) DIRECTORY="$OPTARG" ;;
     u) DELETE_UNTRACKED=true ;;
     m) CHECKOUT_MAIN=true ;;
+    q) QUIET=true ;;
     *)
       usage
       exit 1
@@ -36,6 +44,7 @@ done
 DIRECTORY=${DIRECTORY:-.}
 DELETE_UNTRACKED=${DELETE_UNTRACKED:-false}
 CHECKOUT_MAIN=${CHECKOUT_MAIN:-false}
+QUIET=${QUIET:-false}
 
 # Determine the main branch dynamically
 detect_main_branch() {
@@ -141,7 +150,7 @@ checkout_main_branch() {
     if [ "$CHECKOUT_MAIN" = true ]; then
         local main_branch
         main_branch=$(detect_main_branch)
-        echo "Checking out the main branch ($main_branch)..."
+        verbose_echo "Checking out the main branch ($main_branch)..."
 
         local current_branch
         current_branch=$(git symbolic-ref --short HEAD 2>/dev/null)
@@ -171,14 +180,14 @@ ensure_fetch_refspecs() {
     local remote
     for remote in $(git_remotes); do
         if [ -z "$(git config --get-all "remote.$remote.fetch")" ]; then
-            info_echo "Adding missing fetch refspec for remote $remote."
+            verbose_echo "Adding missing fetch refspec for remote $remote."
             git config "remote.$remote.fetch" "+refs/heads/*:refs/remotes/$remote/*"
         fi
     done
 }
 
 fetch_remotes() {
-    echo "Fetching remote changes and pruning removed branches..."
+    verbose_echo "Fetching remote changes and pruning removed branches..."
     git fetch --all --prune
 }
 
@@ -186,7 +195,7 @@ fetch_remotes() {
 fast_forward_main() {
     local main_branch
     main_branch=$(detect_main_branch)
-    echo "Fast-forwarding $main_branch..."
+    verbose_echo "Fast-forwarding $main_branch..."
 
     # If main is checked out in a worktree, pull from there — git refuses
     # to update a branch via fetch refspec while it is checked out elsewhere.
@@ -208,7 +217,7 @@ fast_forward_main() {
 # Prune stale worktree metadata
 prune_worktrees() {
     if git worktree list >/dev/null 2>&1; then
-        echo "Pruning stale worktree metadata..."
+        verbose_echo "Pruning stale worktree metadata..."
         git worktree prune
     fi
 }
@@ -269,7 +278,7 @@ remove_worktrees_for_branches() {
             continue
         fi
 
-        echo "Removing worktree $worktree for branch $branch..."
+        verbose_echo "Removing worktree $worktree for branch $branch..."
         if git worktree remove "$worktree"; then
             git branch -D "$branch"
         else
@@ -279,7 +288,7 @@ remove_worktrees_for_branches() {
 }
 
 remove_deleted_worktrees() {
-    echo "Removing worktrees with deleted remote tracking..."
+    verbose_echo "Removing worktrees with deleted remote tracking..."
     remove_worktrees_for_branches "$(gone_tracking_branches)"
 }
 
@@ -305,7 +314,7 @@ delete_branches() {
 
 # Remove deleted branches
 remove_deleted_branches() {
-    echo "Removing local branches with deleted remote tracking..."
+    verbose_echo "Removing local branches with deleted remote tracking..."
     local branches
     branches=$(gone_tracking_branches)
     delete_branches "$branches"
@@ -313,7 +322,7 @@ remove_deleted_branches() {
 
 # Remove merged branches
 remove_merged_branches() {
-    echo "Removing merged local branches..."
+    verbose_echo "Removing merged local branches..."
     local main_branch
     main_branch=$(detect_main_branch)
 
@@ -334,14 +343,14 @@ remove_merged_branches() {
 
 # Prune orphaned objects
 prune_local_objects() {
-    echo "Removing orphaned objects..."
+    verbose_echo "Removing orphaned objects..."
     git prune --progress
 }
 
 # Remove local branches that do not track any remote branch
 remove_untracked() {
     if [ "$DELETE_UNTRACKED" = true ]; then
-        echo "Removing untracked branches..."
+        verbose_echo "Removing untracked branches..."
         local main_branch
         main_branch=$(detect_main_branch)
         local current_branch
@@ -356,7 +365,7 @@ remove_untracked() {
 
 # Check for stashes
 check_stashes() {
-    echo "Checking for old stashes..."
+    verbose_echo "Checking for old stashes..."
     local stash_context="."
     local is_bare
     is_bare=$(git rev-parse --is-bare-repository 2>/dev/null)

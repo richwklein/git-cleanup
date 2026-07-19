@@ -95,6 +95,20 @@ setup() {
     [ -z "$output" ]
 }
 
+@test "-q flag is accepted" {
+    run bash "$SCRIPT" -d "$REPO_DIR" -q
+
+    [ "$status" -eq 0 ]
+}
+
+@test "-q suppresses sub-operation output but keeps top-level messages" {
+    run bash "$SCRIPT" -d "$REPO_DIR" -q
+
+    [ "$status" -eq 0 ]
+    [[ "$output" == *"Processing"* ]]
+    [[ "$output" != *"Fetching remote changes"* ]]
+}
+
 @test "does not process a repo nested inside another repo's working tree" {
     create_remote_branch "feature/outer"
     delete_remote_branch "feature/outer"
