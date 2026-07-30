@@ -114,6 +114,36 @@ setup() {
     [ -n "$output" ]
 }
 
+@test "-u force-removes a dirty worktree for a merged branch" {
+    create_remote_branch "feature/merged"
+    git -C "$WORKTREE_DIR" merge "feature/merged"
+    git -C "$WORKTREE_DIR" push origin main
+    local wt_path="$REPO_DIR/feature-merged"
+    git -C "$REPO_DIR" worktree add "$wt_path" "feature/merged"
+    echo "uncommitted" > "$wt_path/leftover"
+
+    run bash "$SCRIPT" -d "$REPO_DIR" -u
+
+    [ "$status" -eq 0 ]
+    [ ! -d "$wt_path" ]
+    run git -C "$REPO_DIR" branch --list "feature/merged"
+    [ -z "$output" ]
+}
+
+@test "accepts the directory as a positional argument with flags in any order" {
+    create_remote_branch "feature/merged"
+    git -C "$WORKTREE_DIR" merge "feature/merged"
+    git -C "$WORKTREE_DIR" push origin main
+    local wt_path="$REPO_DIR/feature-merged"
+    git -C "$REPO_DIR" worktree add "$wt_path" "feature/merged"
+    echo "uncommitted" > "$wt_path/leftover"
+
+    run bash "$SCRIPT" "$REPO_DIR" -u
+
+    [ "$status" -eq 0 ]
+    [ ! -d "$wt_path" ]
+}
+
 @test "highlights git error output in the error color" {
     create_remote_branch "feature/merged"
     git -C "$WORKTREE_DIR" merge "feature/merged"
