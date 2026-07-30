@@ -45,21 +45,28 @@ run_highlighted() (
 )
 
 usage() {
-    echo "Usage: $0 [-d directory] [-u] [-m] [-q]"
+    echo "Usage: $0 [-u] [-m] [-q] [-d directory | directory]"
 }
 
-# Parse command-line arguments
-while getopts "d:umq" opt; do
-  case $opt in
-    d) DIRECTORY="$OPTARG" ;;
-    u) DELETE_UNTRACKED=true ;;
-    m) CHECKOUT_MAIN=true ;;
-    q) QUIET=true ;;
-    *)
-      usage
-      exit 1
-      ;;
-  esac
+# Parse command-line arguments. Unlike getopts, this accepts a positional
+# directory and allows flags to appear in any order (e.g. both "-d . -u" and
+# ". -u" work); a bare path is equivalent to -d.
+while [ $# -gt 0 ]; do
+    case "$1" in
+        -d)
+            [ $# -ge 2 ] || { usage; exit 1; }
+            DIRECTORY="$2"
+            shift 2
+            ;;
+        -d*) DIRECTORY="${1#-d}"; shift ;;
+        -u) DELETE_UNTRACKED=true; shift ;;
+        -m) CHECKOUT_MAIN=true; shift ;;
+        -q) QUIET=true; shift ;;
+        -h|--help) usage; exit 0 ;;
+        --) shift; break ;;
+        -*) usage; exit 1 ;;
+        *) DIRECTORY="$1"; shift ;;
+    esac
 done
 
 # Default values
@@ -290,6 +297,14 @@ remove_worktrees_for_branches() {
     local current_worktree
     current_worktree=$(git rev-parse --show-toplevel 2>/dev/null || git rev-parse --absolute-git-dir 2>/dev/null)
 
+    # git worktree remove refuses a worktree with modified or untracked files.
+    # Only override that with --force when the user opted into -u; otherwise
+    # such worktrees are reported and left in place.
+    local -a remove_opts=()
+    if [ "$DELETE_UNTRACKED" = true ]; then
+        remove_opts=(--force)
+    fi
+
     worktree_branches | while IFS=$'\t' read -r worktree branch; do
         if ! echo "$branches" | grep -Fxq "$branch"; then
             continue
@@ -301,8 +316,10 @@ remove_worktrees_for_branches() {
         fi
 
         verbose_echo "Removing worktree $worktree for branch $branch..."
-        if run_highlighted git worktree remove "$worktree"; then
+        if run_highlighted git worktree remove "${remove_opts[@]}" "$worktree"; then
             run_highlighted git branch -D "$branch"
+        elif [ "$DELETE_UNTRACKED" != true ]; then
+            error_echo "Failed to remove worktree $worktree for branch $branch (has modified or untracked files; rerun with -u to force)."
         else
             error_echo "Failed to remove worktree $worktree for branch $branch."
         fi
