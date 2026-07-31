@@ -1,5 +1,18 @@
 # Changelog
 
+## [2.4.1](https://github.com/richwklein/git-cleanup/compare/v2.4.0...v2.4.1) (2026-07-31)
+
+
+### Bug Fixes
+
+* force-remove dirty merged worktrees under -u and accept positional dir ([#51](https://github.com/richwklein/git-cleanup/issues/51)) ([c5a52c2](https://github.com/richwklein/git-cleanup/commit/c5a52c2e104e0e8a4acdae99617e20609b989685))
+
+
+### Miscellaneous Chores
+
+* **audit:** sync files with repo-template-base ([#52](https://github.com/richwklein/git-cleanup/issues/52)) ([449678d](https://github.com/richwklein/git-cleanup/commit/449678d77691712d297d1b6c5c4648b1fbe80bfa))
+* **deps:** bump github/codeql-action from 4.37.1 to 4.37.3 in the third-party-actions group across 1 directory ([#50](https://github.com/richwklein/git-cleanup/issues/50)) ([d2696ad](https://github.com/richwklein/git-cleanup/commit/d2696ad1b51c9561cfb05141b8ebe8efd6f355fa))
+
 ## [2.4.0](https://github.com/richwklein/git-cleanup/compare/v2.3.0...v2.4.0) (2026-07-19)
 
 
