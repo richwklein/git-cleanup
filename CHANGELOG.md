@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.2](https://github.com/richwklein/git-cleanup/compare/v2.4.1...v2.4.2) (2026-08-13)
+
+
+### Miscellaneous Chores
+
+* **deps:** bump github/codeql-action from 4.37.3 to 4.37.4 in the third-party-actions group ([#54](https://github.com/richwklein/git-cleanup/issues/54)) ([fe68e38](https://github.com/richwklein/git-cleanup/commit/fe68e38aa510186922ef8798445ffb8fd0d43f3f))
+
 ## [2.4.1](https://github.com/richwklein/git-cleanup/compare/v2.4.0...v2.4.1) (2026-07-31)
 
 
