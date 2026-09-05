@@ -5,6 +5,10 @@ name: Release
 on:
   push:
     branches: [main]
+  # Manual trigger for rebuilding a release PR without a new commit on main —
+  # e.g. after correcting tag state, when release-please computed the wrong
+  # commit range and the stale PR was closed.
+  workflow_dispatch:
 
 permissions:
   contents: write
