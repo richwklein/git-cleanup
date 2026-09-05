@@ -10,7 +10,7 @@ Breaking changes: append `!` (e.g., `feat!: rename public API`) or include a `BR
 
 Examples:
 
-```
+```text
 feat(auth): add SSO sign-in
 fix: stop crashing on empty search results
 chore(deps): bump astro to 6.2.0
@@ -27,7 +27,7 @@ docs: clarify deployment steps
 
 ## Verify commits are signed
 
-```
+```sh
 git log --show-signature -1
 ```
 

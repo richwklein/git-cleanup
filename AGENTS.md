@@ -40,7 +40,7 @@ This repo ships four PR templates aligned with the issue templates: `bug.md`, `e
 
 Pick one by appending `?template=<name>.md` to the compare URL, for example:
 
-```
+```text
 https://github.com/<owner>/<repo>/compare/main...<branch>?template=enhancement.md
 ```
 
