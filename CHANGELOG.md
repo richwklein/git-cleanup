@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.4.2](https://github.com/richwklein/git-cleanup/compare/v2.4.1...v2.4.2) (2026-09-26)
+
+
+### Miscellaneous Chores
+
+* **audit:** sync files with repo-template-base ([#57](https://github.com/richwklein/git-cleanup/issues/57)) ([c9bbc99](https://github.com/richwklein/git-cleanup/commit/c9bbc99f3dbd5e11edebcdbca71cdbe6df2dcf36))
+* **deps:** bump github/codeql-action from 4.37.3 to 4.37.4 in the third-party-actions group ([#54](https://github.com/richwklein/git-cleanup/issues/54)) ([fe68e38](https://github.com/richwklein/git-cleanup/commit/fe68e38aa510186922ef8798445ffb8fd0d43f3f))
+* **deps:** bump github/codeql-action from 4.37.4 to 4.37.7 in the third-party-actions group ([#56](https://github.com/richwklein/git-cleanup/issues/56)) ([be666e7](https://github.com/richwklein/git-cleanup/commit/be666e7487d0acb3cbc37c8dd45c09f536a99a87))
+* **deps:** bump github/codeql-action from 4.37.7 to 4.37.9 in the third-party-actions group ([#58](https://github.com/richwklein/git-cleanup/issues/58)) ([bbec504](https://github.com/richwklein/git-cleanup/commit/bbec504e89c945660a6e083a17473d46d81653e3))
+* **deps:** bump github/codeql-action from 4.37.9 to 4.38.1 in the third-party-actions group ([#59](https://github.com/richwklein/git-cleanup/issues/59)) ([7d8300f](https://github.com/richwklein/git-cleanup/commit/7d8300f734805c28783f2181132e585dd7a1a92f))
+
 ## [2.4.1](https://github.com/richwklein/git-cleanup/compare/v2.4.0...v2.4.1) (2026-07-31)
 
 
