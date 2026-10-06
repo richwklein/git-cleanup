@@ -74,6 +74,7 @@ DIRECTORY=${DIRECTORY:-.}
 DELETE_UNTRACKED=${DELETE_UNTRACKED:-false}
 CHECKOUT_MAIN=${CHECKOUT_MAIN:-false}
 QUIET=${QUIET:-false}
+KEPT_WORKTREES=false
 
 # Determine the main branch dynamically
 detect_main_branch() {
@@ -187,6 +188,7 @@ iterate_directories() {
 
 # Function to clean a regular repository
 clean_repository() {
+    REPORTED_BRANCHES=""
     checkout_main_branch
     fetch_remotes
     prune_worktrees
@@ -200,6 +202,7 @@ clean_repository() {
 
 # Function to clean a bare repository
 clean_bare_repository() {
+    REPORTED_BRANCHES=""
     ensure_fetch_refspecs
     fetch_remotes
     fast_forward_main
@@ -324,9 +327,19 @@ worktree_branches() {
     '
 }
 
+# Branches already reported this repo, so later passes don't report them again
+is_reported() {
+    printf '%s' "$REPORTED_BRANCHES" | grep -Fxq "$1"
+}
+
+mark_reported() {
+    REPORTED_BRANCHES+="$1"$'\n'
+}
+
 # Remove worktrees whose branch is in the given list, deleting the branch after
 remove_worktrees_for_branches() {
     local branches="$1"
+    local worktree branch status
 
     if [[ -z "$branches" ]]; then
         return
@@ -343,25 +356,44 @@ remove_worktrees_for_branches() {
         remove_opts=(--force)
     fi
 
-    worktree_branches | while IFS=$'\t' read -r worktree branch; do
-        if ! echo "$branches" | grep -Fxq "$branch"; then
+    # Read from a here-doc, not a pipe, so mark_reported survives the loop.
+    while IFS=$'\t' read -r worktree branch; do
+        if [ -z "$branch" ] || ! echo "$branches" | grep -Fxq "$branch" || is_reported "$branch"; then
             continue
         fi
 
         if [ "$worktree" = "$current_worktree" ]; then
             error_echo "Skipping $branch because it is checked out in the current worktree."
+            mark_reported "$branch"
             continue
+        fi
+
+        if [ "$DELETE_UNTRACKED" != true ]; then
+            # Pass --untracked-files explicitly: under status.showUntrackedFiles=no,
+            # git worktree remove deletes untracked files instead of refusing.
+            if ! status=$(git --no-optional-locks -C "$worktree" status --porcelain --untracked-files=normal 2>/dev/null); then
+                error_echo "Could not check $worktree ($branch) for changes (git status failed); keeping it."
+                mark_reported "$branch"
+                continue
+            fi
+            if [ -n "$status" ]; then
+                error_echo "Kept worktree $worktree ($branch): modified or untracked files."
+                KEPT_WORKTREES=true
+                mark_reported "$branch"
+                continue
+            fi
         fi
 
         verbose_echo "Removing worktree $worktree for branch $branch..."
         if run_highlighted git worktree remove "${remove_opts[@]}" "$worktree"; then
             run_highlighted git branch -D "$branch"
-        elif [ "$DELETE_UNTRACKED" != true ]; then
-            error_echo "Failed to remove worktree $worktree for branch $branch (has modified or untracked files; rerun with -u to force)."
         else
             error_echo "Failed to remove worktree $worktree for branch $branch."
+            mark_reported "$branch"
         fi
-    done
+    done <<EOF
+$(worktree_branches)
+EOF
 }
 
 remove_deleted_worktrees() {
@@ -376,6 +408,10 @@ delete_branches() {
         echo "$branches" | while read -r branch; do
             # Branch may already be gone if its worktree was removed
             if ! git show-ref --verify --quiet "refs/heads/$branch"; then
+                continue
+            fi
+
+            if is_reported "$branch"; then
                 continue
             fi
 
@@ -459,5 +495,9 @@ check_stashes() {
 }
 
 iterate_directories
+
+if [ "$KEPT_WORKTREES" = true ] && [ "$DELETE_UNTRACKED" != true ]; then
+    info_echo "Rerun with -u to force-remove kept worktrees (discards their changes; also deletes local branches without an upstream)."
+fi
 
 info_echo "Cleanup complete."

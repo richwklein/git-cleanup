@@ -6,6 +6,22 @@ setup() {
     setup_bare_repo
 }
 
+# Merge a branch into main and check it out in a worktree at $REPO_DIR/<dir>.
+add_merged_worktree() {
+    local branch="$1"
+    local dir="$2"
+    create_remote_branch "$branch"
+    git -C "$WORKTREE_DIR" merge "$branch"
+    git -C "$WORKTREE_DIR" push origin main
+    git -C "$REPO_DIR" worktree add "$REPO_DIR/$dir" "$branch"
+}
+
+make_kept_worktree() {
+    setup_bare_repo "$1"
+    add_merged_worktree "feature/merged" "feature-merged"
+    echo "uncommitted" > "$REPO_DIR/feature-merged/leftover"
+}
+
 @test "fast-forwards main when remote is ahead" {
     # Push a new commit to remote from a separate clone
     local pusher="$BATS_TEST_TMPDIR/pusher"
@@ -93,6 +109,7 @@ setup() {
     run bash "$SCRIPT" -d "$REPO_DIR"
 
     [ "$status" -eq 0 ]
+    [ "$(grep -c "Rerun with -u" <<<"$output")" -eq 0 ]
     [ ! -d "$wt_path" ]
     run git -C "$REPO_DIR" branch --list "feature/merged"
     [ -z "$output" ]
@@ -109,6 +126,11 @@ setup() {
     run bash "$SCRIPT" -d "$REPO_DIR"
 
     [ "$status" -eq 0 ]
+    [ "$(grep -c "Kept worktree" <<<"$output")" -eq 1 ]
+    [ "$(grep -c "fatal:" <<<"$output")" -eq 0 ]
+    [ "$(grep -c "Skipping" <<<"$output")" -eq 0 ]
+    [ "$(grep -c "Failed to remove" <<<"$output")" -eq 0 ]
+    [ "$(grep -c "Rerun with -u" <<<"$output")" -eq 1 ]
     [ -d "$wt_path" ]
     run git -C "$REPO_DIR" branch --list "feature/merged"
     [ -n "$output" ]
@@ -125,9 +147,68 @@ setup() {
     run bash "$SCRIPT" -d "$REPO_DIR" -u
 
     [ "$status" -eq 0 ]
+    [ "$(grep -c "Rerun with -u" <<<"$output")" -eq 0 ]
     [ ! -d "$wt_path" ]
     run git -C "$REPO_DIR" branch --list "feature/merged"
     [ -z "$output" ]
+}
+
+@test "keeps a dirty worktree for a branch deleted on the remote" {
+    create_remote_branch "feature/gone"
+    local wt_path="$REPO_DIR/feature-gone"
+    git -C "$REPO_DIR" worktree add "$wt_path" "feature/gone"
+    echo "uncommitted" > "$wt_path/leftover"
+    delete_remote_branch "feature/gone"
+
+    run bash "$SCRIPT" -d "$REPO_DIR"
+
+    [ "$status" -eq 0 ]
+    [ "$(grep -c "Kept worktree" <<<"$output")" -eq 1 ]
+    [ "$(grep -c "Skipping" <<<"$output")" -eq 0 ]
+    [ -f "$wt_path/leftover" ]
+    run git -C "$REPO_DIR" branch --list "feature/gone"
+    [ -n "$output" ]
+}
+
+@test "reports a dirty worktree once when its branch is both gone and merged" {
+    add_merged_worktree "feature/both" "feature-both"
+    echo "uncommitted" > "$REPO_DIR/feature-both/leftover"
+    delete_remote_branch "feature/both"
+
+    run bash "$SCRIPT" -d "$REPO_DIR"
+
+    [ "$status" -eq 0 ]
+    [ "$(grep -c "Kept worktree" <<<"$output")" -eq 1 ]
+    [ "$(grep -c "Skipping" <<<"$output")" -eq 0 ]
+    [ -f "$REPO_DIR/feature-both/leftover" ]
+}
+
+@test "keeps a worktree with untracked files when status.showUntrackedFiles=no" {
+    add_merged_worktree "feature/merged" "feature-merged"
+    git -C "$REPO_DIR" config status.showUntrackedFiles no
+    echo "uncommitted" > "$REPO_DIR/feature-merged/leftover"
+
+    run bash "$SCRIPT" -d "$REPO_DIR"
+
+    [ "$status" -eq 0 ]
+    [ "$(grep -c "Kept worktree" <<<"$output")" -eq 1 ]
+    [ -f "$REPO_DIR/feature-merged/leftover" ]
+}
+
+@test "keeps a worktree whose status check fails" {
+    add_merged_worktree "feature/merged" "feature-merged"
+    local wt_path="$REPO_DIR/feature-merged"
+    echo garbage > "$(git -C "$wt_path" rev-parse --git-dir)/index"
+
+    run bash "$SCRIPT" -d "$REPO_DIR"
+
+    [ "$status" -eq 0 ]
+    [ "$(grep -c "Could not check" <<<"$output")" -eq 1 ]
+    [ "$(grep -c "Kept worktree" <<<"$output")" -eq 0 ]
+    [ "$(grep -c "Failed to remove" <<<"$output")" -eq 0 ]
+    [ "$(grep -c "Skipping" <<<"$output")" -eq 0 ]
+    [ "$(grep -c "cannot remove\|contains modified" <<<"$output")" -eq 0 ]
+    [ -d "$wt_path" ]
 }
 
 @test "accepts the directory as a positional argument with flags in any order" {
@@ -144,20 +225,25 @@ setup() {
     [ ! -d "$wt_path" ]
 }
 
-@test "highlights git error output in the error color" {
-    create_remote_branch "feature/merged"
-    git -C "$WORKTREE_DIR" merge "feature/merged"
-    git -C "$WORKTREE_DIR" push origin main
+@test "reports git's error for a locked worktree in the error color" {
+    add_merged_worktree "feature/merged" "feature-merged"
     local wt_path="$REPO_DIR/feature-merged"
-    git -C "$REPO_DIR" worktree add "$wt_path" "feature/merged"
-    echo "uncommitted" > "$wt_path/leftover"
+    git -C "$REPO_DIR" worktree lock --reason "in use" "$wt_path"
 
     run bash "$SCRIPT" -d "$REPO_DIR"
 
     [ "$status" -eq 0 ]
     # git's own "fatal:" diagnostic is wrapped in the RED color code
     local red=$'\033[0;31m'
-    [[ "$output" == *"${red}fatal:"* ]]
+    [ "$(grep -cF "${red}fatal:" <<<"$output")" -eq 1 ]
+    [ "$(grep -c "Failed to remove worktree" <<<"$output")" -eq 1 ]
+    [ "$(grep -c "modified or untracked" <<<"$output")" -eq 0 ]
+    [ "$(grep -c "Kept worktree" <<<"$output")" -eq 0 ]
+    [ "$(grep -c "Skipping" <<<"$output")" -eq 0 ]
+    [ "$(grep -c "Rerun with -u" <<<"$output")" -eq 0 ]
+    [ -d "$wt_path" ]
+    run git -C "$REPO_DIR" branch --list "feature/merged"
+    [ -n "$output" ]
 }
 
 @test "adds fetch refspec to a stock bare clone so gone branches are cleaned" {
@@ -282,6 +368,27 @@ setup() {
 
     [ "$status" -eq 0 ]
     grep -qF "Processing bare repo $(cd "$REPO_DIR" && pwd -P)." <<<"$output"
+}
+
+@test "scanning reports kept worktrees per repo and the -u hint once" {
+    make_kept_worktree "scan/a"
+    make_kept_worktree "scan/b"
+    local a b
+    a=$(cd "$BATS_TEST_TMPDIR/scan/a" && pwd -P)
+    b=$(cd "$BATS_TEST_TMPDIR/scan/b" && pwd -P)
+
+    run bash "$SCRIPT" -d "$BATS_TEST_TMPDIR/scan"
+
+    [ "$status" -eq 0 ]
+    [ "$(grep -c "Processing" <<<"$output")" -eq 2 ]
+    [ "$(grep -c "Kept worktree" <<<"$output")" -eq 2 ]
+    grep -qF "Kept worktree $a/feature-merged (feature/merged)" <<<"$output"
+    grep -qF "Kept worktree $b/feature-merged (feature/merged)" <<<"$output"
+    [ "$(grep -c "Rerun with -u" <<<"$output")" -eq 1 ]
+    [ "$(grep -c "fatal:" <<<"$output")" -eq 0 ]
+    [ "$(grep -c "Skipping" <<<"$output")" -eq 0 ]
+    [ -f "$a/feature-merged/leftover" ]
+    [ -f "$b/feature-merged/leftover" ]
 }
 
 @test "-m flag is accepted and has no effect on bare repo" {
