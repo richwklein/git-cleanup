@@ -1,5 +1,12 @@
 # Changelog
 
+## [2.4.3](https://github.com/richwklein/git-cleanup/compare/v2.4.2...v2.4.3) (2026-10-06)
+
+
+### Bug Fixes
+
+* process a bare repo's nested worktrees only once ([#61](https://github.com/richwklein/git-cleanup/issues/61)) ([c812a4c](https://github.com/richwklein/git-cleanup/commit/c812a4ce5668a688de1b14c8ed0f956b3142903d))
+
 ## [2.4.2](https://github.com/richwklein/git-cleanup/compare/v2.4.1...v2.4.2) (2026-10-04)
 
 
