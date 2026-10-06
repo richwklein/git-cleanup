@@ -100,6 +100,9 @@ find_git_repo_roots() {
         subdir="${subdir%/}"
         if [ -e "$subdir/.git" ]; then
             echo "$subdir"
+        elif [ "$(git -C "$subdir" rev-parse --is-bare-repository 2>/dev/null)" = "true" ]; then
+            # Its linked worktrees live inside it; clean_bare_repository covers them.
+            echo "$subdir"
         else
             find_git_repo_roots "$subdir"
         fi
@@ -129,21 +132,14 @@ iterate_directories() {
 
     find_git_repo_roots "$DIRECTORY" | while read -r repo; do
         cd "$repo" || continue
-        info_echo "Processing $repo."
-        clean_repository
-        cd - >/dev/null || exit
-    done
-
-    # Process bare repos — check each direct subdirectory
-    find "$DIRECTORY" -mindepth 1 -maxdepth 1 -type d | while read -r subdir; do
-        local subdir_is_bare
-        subdir_is_bare=$(git -C "$subdir" rev-parse --is-bare-repository 2>/dev/null)
-        if [ "$subdir_is_bare" = "true" ]; then
-            cd "$subdir" || continue
-            info_echo "Processing bare repo $subdir."
+        if [ "$(git rev-parse --is-bare-repository 2>/dev/null)" = "true" ]; then
+            info_echo "Processing bare repo $repo."
             clean_bare_repository
-            cd - >/dev/null || exit
+        else
+            info_echo "Processing $repo."
+            clean_repository
         fi
+        cd - >/dev/null || exit
     done
 }
 

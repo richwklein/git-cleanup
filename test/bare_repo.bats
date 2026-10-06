@@ -216,6 +216,17 @@ setup() {
     [ -z "$output" ]
 }
 
+@test "scanning a parent directory does not process a bare repo's worktrees separately" {
+    git -C "$REPO_DIR" worktree add -b feature/wt "$REPO_DIR/feature-wt"
+
+    run bash "$SCRIPT" -d "$BATS_TEST_TMPDIR"
+
+    [ "$status" -eq 0 ]
+    [ "$(grep -cF "Processing bare repo $REPO_DIR." <<<"$output")" -eq 1 ]
+    [[ "$output" != *"Processing $WORKTREE_DIR"* ]]
+    [[ "$output" != *"Processing $REPO_DIR/feature-wt"* ]]
+}
+
 @test "-m flag is accepted and has no effect on bare repo" {
     run bash "$SCRIPT" -d "$REPO_DIR" -m
 
