@@ -92,54 +92,95 @@ detect_main_branch() {
     fi
 }
 
+# Cheap file tests first so most non-repo directories never spawn git.
+is_bare_repo_dir() {
+    local dir="$1"
+    [ -f "$dir/HEAD" ] && [ -d "$dir/objects" ] && [ -d "$dir/refs" ] \
+        && [ "$(git -C "$dir" rev-parse --is-bare-repository 2>/dev/null)" = "true" ]
+}
+
+# Hidden directories are only checked for bare repos (e.g. ~/.dotfiles), never descended into.
 find_git_repo_roots() {
     local base="$1"
     local subdir
-    for subdir in "$base"/*/; do
+    for subdir in "$base"/*/ "$base"/.[!.]*/ "$base"/..?*/; do
         [ -d "$subdir" ] || continue
         subdir="${subdir%/}"
-        if [ -e "$subdir/.git" ]; then
-            echo "$subdir"
-        elif [ "$(git -C "$subdir" rev-parse --is-bare-repository 2>/dev/null)" = "true" ]; then
-            # Its linked worktrees live inside it; clean_bare_repository covers them.
-            echo "$subdir"
-        else
-            find_git_repo_roots "$subdir"
-        fi
+        case "${subdir##*/}" in
+            .*)
+                is_bare_repo_dir "$subdir" && echo "$subdir"
+                ;;
+            *)
+                if [ -e "$subdir/.git" ] || is_bare_repo_dir "$subdir"; then
+                    echo "$subdir"
+                else
+                    find_git_repo_roots "$subdir"
+                fi
+                ;;
+        esac
     done
+}
+
+# Map each found path to its repository root (the bare repo or the main worktree)
+# so a repo reached through several worktrees is cleaned once.
+# Prints "<bare|regular><TAB><root>" lines.
+resolve_repo_roots() {
+    local path listing root kind seen=""
+    while IFS= read -r path; do
+        if ! listing=$(git -C "$path" worktree list --porcelain 2>/dev/null); then
+            error_echo "Skipping $path because it is not a valid git repository."
+            continue
+        fi
+        root=$(sed -n '1s/^worktree //p' <<<"$listing")
+        if printf '%s' "$seen" | grep -Fxq "$root"; then
+            continue
+        fi
+        seen+="$root"$'\n'
+        kind=regular
+        if [ "$(sed -n '2p' <<<"$listing")" = "bare" ]; then
+            kind=bare
+        fi
+        printf '%s\t%s\n' "$kind" "$root"
+    done
+}
+
+process_repo() {
+    local kind="$1"
+    local root="$2"
+    cd "$root" || return
+    if [ "$kind" = bare ]; then
+        info_echo "Processing bare repo $root."
+        clean_bare_repository
+    else
+        info_echo "Processing $root."
+        clean_repository
+    fi
 }
 
 # Function to iterate through directories and clean repositories
 iterate_directories() {
     info_echo "Checking projects in $DIRECTORY..."
 
-    local is_bare
-    is_bare=$(git -C "$DIRECTORY" rev-parse --is-bare-repository 2>/dev/null)
-
-    if [ "$is_bare" = "true" ]; then
-        cd "$DIRECTORY" || exit 1
-        info_echo "Processing bare repo $(pwd)."
-        clean_bare_repository
+    if [ "$(git -C "$DIRECTORY" rev-parse --is-bare-repository 2>/dev/null)" = "true" ]; then
+        process_repo bare "$(cd "$DIRECTORY" && pwd)"
         return
     fi
 
     if git -C "$DIRECTORY" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-        cd "$DIRECTORY" || exit 1
-        info_echo "Processing $(git rev-parse --show-toplevel)."
-        clean_repository
+        process_repo regular "$(git -C "$DIRECTORY" rev-parse --show-toplevel)"
         return
     fi
 
-    find_git_repo_roots "$DIRECTORY" | while read -r repo; do
-        cd "$repo" || continue
-        if [ "$(git rev-parse --is-bare-repository 2>/dev/null)" = "true" ]; then
-            info_echo "Processing bare repo $repo."
-            clean_bare_repository
-        else
-            info_echo "Processing $repo."
-            clean_repository
-        fi
-        cd - >/dev/null || exit
+    # Resolve every root before cleaning any: removing one repo's worktrees can
+    # delete directories the scan has not reached yet.
+    local -a repos=()
+    local entry
+    while IFS= read -r entry; do
+        repos+=("$entry")
+    done < <(find_git_repo_roots "$DIRECTORY" | resolve_repo_roots)
+
+    for entry in "${repos[@]}"; do
+        process_repo "${entry%%$'\t'*}" "${entry#*$'\t'}"
     done
 }
 
