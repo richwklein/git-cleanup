@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.4.4](https://github.com/richwklein/git-cleanup/compare/v2.4.3...v2.4.4) (2026-10-06)
+
+
+### Bug Fixes
+
+* avoid process substitution so the script runs under sh ([#63](https://github.com/richwklein/git-cleanup/issues/63)) ([f57ea47](https://github.com/richwklein/git-cleanup/commit/f57ea4775fc430dd2dc7fb43f9393eb972575a5a))
+* report each kept dirty worktree once ([#65](https://github.com/richwklein/git-cleanup/issues/65)) ([4a8c55b](https://github.com/richwklein/git-cleanup/commit/4a8c55b0a19b9ba030b44686cbe0833fc317c539))
+
 ## [2.4.3](https://github.com/richwklein/git-cleanup/compare/v2.4.2...v2.4.3) (2026-10-06)
 
 
