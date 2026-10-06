@@ -275,6 +275,15 @@ setup() {
     grep -qF "Processing bare repo $(cd "$REPO_DIR" && pwd -P)." <<<"$output"
 }
 
+@test "scanning works in bash POSIX mode (macOS sh)" {
+    setup_bare_repo "scan/app.git"
+
+    run bash --posix "$SCRIPT" -d "$BATS_TEST_TMPDIR/scan"
+
+    [ "$status" -eq 0 ]
+    grep -qF "Processing bare repo $(cd "$REPO_DIR" && pwd -P)." <<<"$output"
+}
+
 @test "-m flag is accepted and has no effect on bare repo" {
     run bash "$SCRIPT" -d "$REPO_DIR" -m
 

@@ -173,11 +173,12 @@ iterate_directories() {
 
     # Resolve every root before cleaning any: removing one repo's worktrees can
     # delete directories the scan has not reached yet.
+    local roots entry
+    roots=$(find_git_repo_roots "$DIRECTORY" | resolve_repo_roots)
     local -a repos=()
-    local entry
     while IFS= read -r entry; do
-        repos+=("$entry")
-    done < <(find_git_repo_roots "$DIRECTORY" | resolve_repo_roots)
+        [ -n "$entry" ] && repos+=("$entry")
+    done <<<"$roots"
 
     for entry in "${repos[@]}"; do
         process_repo "${entry%%$'\t'*}" "${entry#*$'\t'}"
