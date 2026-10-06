@@ -216,6 +216,65 @@ setup() {
     [ -z "$output" ]
 }
 
+@test "scanning processes a bare repo with nested worktrees once" {
+    setup_bare_repo "scan/app"
+    git -C "$REPO_DIR" worktree add -b feature/wt "$REPO_DIR/feature-wt"
+
+    run bash "$SCRIPT" -d "$BATS_TEST_TMPDIR/scan"
+
+    [ "$status" -eq 0 ]
+    [ "$(grep -c "Processing" <<<"$output")" -eq 1 ]
+    grep -qF "Processing bare repo $(cd "$REPO_DIR" && pwd -P)." <<<"$output"
+}
+
+@test "scanning processes a bare repo with sibling worktrees once" {
+    setup_bare_repo "scan/app.git"
+    git -C "$REPO_DIR" worktree add -b feature/wt "$BATS_TEST_TMPDIR/scan/app-feature"
+
+    run bash "$SCRIPT" -d "$BATS_TEST_TMPDIR/scan"
+
+    [ "$status" -eq 0 ]
+    [ "$(grep -c "Processing" <<<"$output")" -eq 1 ]
+    grep -qF "Processing bare repo $(cd "$REPO_DIR" && pwd -P)." <<<"$output"
+}
+
+@test "scanning cleans a hidden bare repo" {
+    setup_bare_repo "scan/.dotfiles"
+    create_remote_branch "feature/gone"
+    delete_remote_branch "feature/gone"
+
+    run bash "$SCRIPT" -d "$BATS_TEST_TMPDIR/scan"
+
+    [ "$status" -eq 0 ]
+    run git -C "$REPO_DIR" branch --list "feature/gone"
+    [ -z "$output" ]
+}
+
+@test "scanning cleans a bare repo below the top level" {
+    setup_bare_repo "scan/group/app"
+    create_remote_branch "feature/gone"
+    delete_remote_branch "feature/gone"
+
+    run bash "$SCRIPT" -d "$BATS_TEST_TMPDIR/scan"
+
+    [ "$status" -eq 0 ]
+    grep -qF "Processing bare repo $(cd "$REPO_DIR" && pwd -P)." <<<"$output"
+    run git -C "$REPO_DIR" branch --list "feature/gone"
+    [ -z "$output" ]
+}
+
+@test "scanning skips a worktree whose metadata is missing" {
+    setup_bare_repo "scan/app.git"
+    git -C "$REPO_DIR" worktree add -b feature/wt "$BATS_TEST_TMPDIR/scan/app-orphan"
+    rm -rf "$REPO_DIR/worktrees/app-orphan"
+
+    run bash "$SCRIPT" -d "$BATS_TEST_TMPDIR/scan"
+
+    [ "$status" -eq 0 ]
+    [ "$(grep -c "not a valid git repository" <<<"$output")" -eq 1 ]
+    grep -qF "Processing bare repo $(cd "$REPO_DIR" && pwd -P)." <<<"$output"
+}
+
 @test "-m flag is accepted and has no effect on bare repo" {
     run bash "$SCRIPT" -d "$REPO_DIR" -m
 

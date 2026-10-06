@@ -35,7 +35,7 @@ Usage: ./git_cleanup.sh [-u] [-m] [-q] [-d directory | directory]
 
 **Directory detection**
 
-If the specified directory is a bare repository, the script cleans it directly. If the directory is inside a regular Git working tree (including a linked worktree), the script cleans that repository. Otherwise the script scans direct subdirectories: subdirectories containing a `.git` directory are treated as regular repositories; subdirectories that are bare repositories are cleaned as bare repos. Each repository is processed once regardless of how many linked worktrees it has.
+If the specified directory is a bare repository, the script cleans it directly. If the directory is inside a regular Git working tree (including a linked worktree), the script cleans that repository. Otherwise the script scans subdirectories recursively, stopping at any directory that has a `.git` entry or is a bare repository. Hidden directories are checked for bare repositories (e.g. `~/.dotfiles`) but not descended into. Each repository found is resolved to its root (the bare repository or the main worktree), so a repository is processed once regardless of how many linked worktrees it has or whether they sit inside or beside it. Directories whose worktree metadata is missing are reported and skipped.
 
 **Bare repositories**
 
