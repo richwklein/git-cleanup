@@ -45,7 +45,7 @@ A stock `git clone --bare` has no fetch refspec, so remote-tracking refs never e
 
 **Worktree-aware branch deletion**
 
-When a linked worktree has a checked-out branch whose remote tracking branch has been deleted, or that has been merged into the main branch, the script removes that worktree and deletes the local branch. Worktrees with uncommitted or untracked changes are left in place. If the affected branch is checked out in the current worktree, the script skips it because removing the directory it is running from is unsafe.
+When a linked worktree has a checked-out branch whose remote tracking branch has been deleted, or that has been merged into the main branch, the script removes that worktree and deletes the local branch. Worktrees with uncommitted or untracked changes are left in place and reported with one line each, followed by a single reminder at the end of the run that `-u` would force-remove them. Untracked files are detected even when `status.showUntrackedFiles` is set to `no`. If `git status` fails in a worktree, the worktree is kept rather than removed. If the affected branch is checked out in the current worktree, the script skips it because removing the directory it is running from is unsafe.
 
 When deleting other branches, the script skips branches that are checked out by any worktree because Git does not allow those branches to be deleted. When `-m` is used from a worktree, the script also skips checking out the main branch if that branch is already checked out by another worktree.
 
