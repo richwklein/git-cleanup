@@ -23,7 +23,7 @@ runs:
   using: 'composite'
   steps:
     - id: detect
-      uses: actions/github-script@v7
+      uses: actions/github-script@v9
       env:
         PATTERNS: ${{ inputs.patterns }}
       with:
